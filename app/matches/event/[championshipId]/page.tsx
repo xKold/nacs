@@ -1,10 +1,8 @@
-import React from 'react';
-
-interface PageProps {
+export default async function Page({
+  params,
+}: {
   params: { championshipId: string };
-}
-
-const EventMatchesPage = async ({ params }: PageProps) => {
+}) {
   const { championshipId } = params;
 
   const res = await fetch(
@@ -34,6 +32,4 @@ const EventMatchesPage = async ({ params }: PageProps) => {
       </ul>
     </main>
   );
-};
-
-export default EventMatchesPage;
+}
