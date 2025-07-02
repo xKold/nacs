@@ -1,11 +1,16 @@
-import type { PageProps } from 'next/app'; // or from 'next/types' if available
+// app/matches/[id]/page.tsx
 
-export default async function MatchDetail({ params }: { params: { id: string } }) {
+export default async function Page({ params }: { params: { id: string } }) {
   const championshipId = "3de05c27-da01-4ede-9319-f5b3f16dfb1f";
 
   const res = await fetch(
-    `/api/matches?championshipId=${championshipId}`,
-    { cache: "no-store" }
+    `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
+      },
+      cache: "no-store",
+    }
   );
 
   if (!res.ok) {
