@@ -1,12 +1,4 @@
-interface Params {
-  championshipId: string;
-}
-
-export default function Page(props: { params: Params }) {
-  return <EventMatchesPage {...props} />;
-}
-
-async function EventMatchesPage({ params }: { params: Params }) {
+export default async function Page({ params }: any) {
   const { championshipId } = params;
 
   const res = await fetch(
