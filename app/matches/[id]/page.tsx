@@ -1,6 +1,6 @@
-// app/matches/[id]/page.tsx
+export default async function Page(props: any) {
+  const { id } = props.params;
 
-export default async function Page({ params }: { params: { id: string } }) {
   const championshipId = "3de05c27-da01-4ede-9319-f5b3f16dfb1f";
 
   const res = await fetch(
@@ -18,7 +18,7 @@ export default async function Page({ params }: { params: { id: string } }) {
   }
 
   const data = await res.json();
-  const match = data.items.find((m: any) => m.match_id === params.id);
+  const match = data.items.find((m: any) => m.match_id === id);
 
   if (!match) {
     return <p>Match not found.</p>;
