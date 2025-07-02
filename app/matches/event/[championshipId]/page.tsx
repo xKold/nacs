@@ -9,7 +9,16 @@ export default async function Page({ params }: any) {
     }
   );
 
-  if (!res.ok) return <p>Failed to load matches.</p>;
+  if (!res.ok) {
+    const errorText = await res.text();  // get error details from response body
+    return (
+      <main style={{ padding: 20 }}>
+        <p>
+          Failed to load matches: {res.status} {res.statusText} — {errorText}
+        </p>
+      </main>
+    );
+  }
 
   const data = await res.json();
 
