@@ -1,14 +1,8 @@
-import React from 'react';
-
-interface Params {
-  championshipId: string;
-}
-
-interface Props {
-  params: Params;
-}
-
-export default async function EventMatchesPage({ params }: Props) {
+export default async function EventMatchesPage({
+  params,
+}: {
+  params: { championshipId: string };
+}) {
   const { championshipId } = params;
 
   const res = await fetch(
