@@ -1,15 +1,19 @@
-export default async function Page({
-  params,
-}: {
-  params: { championshipId: string };
-}) {
+interface Params {
+  championshipId: string;
+}
+
+export default function Page(props: { params: Params }) {
+  return <EventMatchesPage {...props} />;
+}
+
+async function EventMatchesPage({ params }: { params: Params }) {
   const { championshipId } = params;
 
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
     {
       headers: { Authorization: `Bearer ${process.env.FACEIT_API_KEY}` },
-      cache: 'no-store',
+      cache: "no-store",
     }
   );
 
@@ -24,7 +28,7 @@ export default async function Page({
         {data.items.map((match: any) => (
           <li key={match.match_id}>
             <a href={`/matches/match/${match.match_id}`}>
-              {match.teams[0].nickname} vs {match.teams[1].nickname} —{' '}
+              {match.teams[0].nickname} vs {match.teams[1].nickname} —{" "}
               {new Date(match.start_date).toLocaleString()}
             </a>
           </li>
