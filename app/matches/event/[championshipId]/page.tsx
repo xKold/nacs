@@ -1,6 +1,14 @@
-import Link from 'next/link';
+import React from 'react';
 
-export default async function EventMatchesPage({ params }: { params: { championshipId: string } }) {
+interface Params {
+  championshipId: string;
+}
+
+interface Props {
+  params: Params;
+}
+
+export default async function EventMatchesPage({ params }: Props) {
   const { championshipId } = params;
 
   const res = await fetch(
@@ -21,10 +29,10 @@ export default async function EventMatchesPage({ params }: { params: { champions
       <ul>
         {data.items.map((match: any) => (
           <li key={match.match_id}>
-            <Link href={`/matches/match/${match.match_id}`}>
+            <a href={`/matches/match/${match.match_id}`}>
               {match.teams[0].nickname} vs {match.teams[1].nickname} —{' '}
               {new Date(match.start_date).toLocaleString()}
-            </Link>
+            </a>
           </li>
         ))}
       </ul>
