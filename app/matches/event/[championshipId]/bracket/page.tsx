@@ -70,24 +70,24 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
   });
 
   matches.forEach((m) => {
-    matchMap.set(m.match_id, {
-      id: m.match_id,
-      name: `Match ${m.match_id}`,
-      scheduledTime: m.start_time ? new Date(m.start_time) : undefined,
-      participants: [
-        buildParticipant(m.teams.faction1, m.winner),
-        buildParticipant(m.teams.faction2, m.winner),
-      ],
-      state:
-        m.status === "finished"
-          ? "complete"
-          : m.status === "running"
-          ? "inProgress"
-          : "pending",
-      nextMatchId: m.next_match_id,
-      nextMatchSide: m.next_match_side,
-    });
+  matchMap.set(m.match_id, {
+    id: m.match_id,
+    name: `Match ${m.match_id}`,
+    scheduled: m.start_time ? new Date(m.start_time) : undefined,  // <-- here
+    participants: [
+      buildParticipant(m.teams.faction1, m.winner),
+      buildParticipant(m.teams.faction2, m.winner),
+    ],
+    state:
+      m.status === "finished"
+        ? "complete"
+        : m.status === "running"
+        ? "inProgress"
+        : "pending",
+    nextMatchId: m.next_match_id,
+    nextMatchSide: m.next_match_side,
   });
+});
 
   matchMap.forEach((game) => {
     if (game.nextMatchId) {
