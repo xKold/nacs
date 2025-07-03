@@ -16,7 +16,7 @@ type RawMatch = {
     faction2: Team;
   };
   winner?: string;
-  start_date?: string; // ISO string from Faceit API
+  start_date?: string;
   status: string;
   next_match_id?: string;
   next_match_side?: "home" | "away";
@@ -24,6 +24,7 @@ type RawMatch = {
 
 type Params = Promise<{ championshipId: string }>;
 
+// Fetch matches from Faceit API
 async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   const headers = {
     Authorization: `Bearer ${process.env.NEXT_PUBLIC_FACEIT_API_KEY}`,
@@ -40,19 +41,15 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }
 
   const data = await res.json();
-
   return data.items as RawMatch[];
 }
 
-// Converts ISO date string to EST timestamp (ms)
-function toESTTimestamp(isoDate?: string): number | undefined {
-  if (!isoDate) return undefined;
+// Convert ISO date to EST timestamp (milliseconds)
+function toESTTimestamp(isoDate?: string): number {
+  if (!isoDate) return 0;
   const utcDate = new Date(isoDate);
-
-  // EST is UTC-5, ignoring DST for simplicity
-  // Adjust the time to EST by subtracting 5 hours (5 * 60 * 60 * 1000 ms)
-  const estOffsetMs = 5 * 60 * 60 * 1000;
-  return utcDate.getTime() - estOffsetMs;
+  // EST = UTC-5 hours (no DST adjustment)
+  return utcDate.getTime() - 5 * 60 * 60 * 1000;
 }
 
 function buildParticipant(team: Team, winner?: string) {
@@ -74,13 +71,7 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
     const game: Model.Game = {
       id: m.match_id,
       name: `Match ${m.match_id}`,
-      scheduled: toESTTimestamp(m.start_date) ?? 0,
-      state:
-        m.status === "finished"
-          ? "complete"
-          : m.status === "running"
-          ? "inProgress"
-          : "pending",
+      scheduled: toESTTimestamp(m.start_date),
       home: buildParticipant(m.teams.faction1, m.winner),
       away: buildParticipant(m.teams.faction2, m.winner),
       nextMatchId: m.next_match_id,
@@ -90,7 +81,7 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
     matchMap.set(m.match_id, game);
   });
 
-  // Link previous games
+  // Link previous games to next games
   matchMap.forEach((game) => {
     if (game.nextMatchId) {
       const nextGame = matchMap.get(game.nextMatchId);
@@ -101,7 +92,7 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
     }
   });
 
-  // Find root game (no one points to it)
+  // Find root game (the one no other games point to)
   const nextIds = new Set(
     Array.from(matchMap.values())
       .map((g) => g.nextMatchId)
