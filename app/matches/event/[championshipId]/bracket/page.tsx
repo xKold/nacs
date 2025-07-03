@@ -1,8 +1,11 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
-import { Bracket, MatchProps, Tournament } from "react-tournament-bracket";
+import {
+  Match as BracketMatch,
+  MatchProps,
+  Tournament,
+  TournamentBracket,
+} from "react-tournament-bracket";
 
 type Team = {
   name: string;
@@ -20,32 +23,52 @@ type RawMatch = {
   status: string;
 };
 
+// Build tournament tree with bye handling
 function buildTournament(matches: RawMatch[]): Tournament {
   const matchMap = new Map<string, MatchProps>();
 
   matches.forEach((m) => {
+    const team1 = m.teams.faction1;
+    const team2 = m.teams.faction2;
+
+    // Bye handling: if one team is TBD, other auto-wins
+    let winner = m.winner;
+    if (
+      (!team1.name || team1.name === "TBD") &&
+      team2.name &&
+      team2.name !== "TBD"
+    ) {
+      winner = team2.name;
+    } else if (
+      (!team2.name || team2.name === "TBD") &&
+      team1.name &&
+      team1.name !== "TBD"
+    ) {
+      winner = team1.name;
+    }
+
     matchMap.set(m.match_id, {
       id: m.match_id,
       name: `Match ${m.match_id}`,
       scheduledTime: m.start_time ? new Date(m.start_time) : undefined,
       participants: [
         {
-          id: m.teams.faction1.name,
-          name: m.teams.faction1.name,
+          id: team1.name,
+          name: team1.name,
           abbreviation: "",
-          resultText: m.winner === m.teams.faction1.name ? "W" : "",
-          isWinner: m.winner === m.teams.faction1.name,
+          resultText: winner === team1.name ? "W" : "",
+          isWinner: winner === team1.name,
         },
         {
-          id: m.teams.faction2.name,
-          name: m.teams.faction2.name,
+          id: team2.name,
+          name: team2.name,
           abbreviation: "",
-          resultText: m.winner === m.teams.faction2.name ? "W" : "",
-          isWinner: m.winner === m.teams.faction2.name,
+          resultText: winner === team2.name ? "W" : "",
+          isWinner: winner === team2.name,
         },
       ],
       state:
-        m.status === "finished"
+        m.status === "finished" || (winner && winner !== "")
           ? "complete"
           : m.status === "running"
           ? "inProgress"
@@ -54,34 +77,6 @@ function buildTournament(matches: RawMatch[]): Tournament {
       nextMatchSide: undefined,
     });
   });
-
-  // Link matches for a single-elimination bracket (example for 8 matches first round)
-  // This logic assumes matches are ordered correctly in the array
-  const rounds = Math.ceil(Math.log2(matches.length + 1));
-  let currentRoundSize = matches.length;
-  let nextRoundStartIndex = currentRoundSize;
-
-  while (currentRoundSize > 1) {
-    for (let i = 0; i < currentRoundSize; i += 2) {
-      const m1 = matchMap.get(matches[nextRoundStartIndex - currentRoundSize + i]?.match_id);
-      if (!m1) continue;
-
-      const child1 = matchMap.get(matches[nextRoundStartIndex - currentRoundSize - currentRoundSize + i]?.match_id);
-      const child2 = matchMap.get(matches[nextRoundStartIndex - currentRoundSize - currentRoundSize + i + 1]?.match_id);
-
-      if (child1) {
-        child1.nextMatchId = m1.id;
-        child1.nextMatchSide = "top";
-      }
-      if (child2) {
-        child2.nextMatchId = m1.id;
-        child2.nextMatchSide = "bottom";
-      }
-    }
-
-    nextRoundStartIndex += currentRoundSize;
-    currentRoundSize = Math.floor(currentRoundSize / 2);
-  }
 
   return {
     matches: Array.from(matchMap.values()),
@@ -118,26 +113,40 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }));
 }
 
-export default function Page({ params }: { params: { championshipId: string } }) {
+type PageProps = {
+  params: { championshipId: string };
+};
+
+export default async function Page({ params }: PageProps) {
   const { championshipId } = params;
-  const [tournament, setTournament] = React.useState<Tournament | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
+  let matches: RawMatch[] = [];
+  let error: string | null = null;
 
-  React.useEffect(() => {
-    fetchMatches(championshipId)
-      .then((matches) => setTournament(buildTournament(matches)))
-      .catch((e) => setError(e.message));
-  }, [championshipId]);
+  try {
+    matches = await fetchMatches(championshipId);
+  } catch (e: any) {
+    error = e.message;
+  }
 
-  if (error)
+  if (error) {
     return (
       <main style={{ padding: 20 }}>
         <p>Error loading bracket: {error}</p>
         <Link href={`/matches/event/${championshipId}`}>Back to Matches</Link>
       </main>
     );
+  }
 
-  if (!tournament) return <p>Loading bracket...</p>;
+  if (matches.length === 0) {
+    return (
+      <main style={{ padding: 20 }}>
+        <p>No matches found for this championship.</p>
+        <Link href={`/matches/event/${championshipId}`}>Back to Matches</Link>
+      </main>
+    );
+  }
+
+  const tournament = buildTournament(matches);
 
   return (
     <main>
@@ -150,11 +159,14 @@ export default function Page({ params }: { params: { championshipId: string } })
 
       <h1 style={{ textAlign: "center" }}>Bracket</h1>
 
-      <Bracket
+      <TournamentBracket
         tournament={tournament}
         matchComponent={({ match }) => {
           return (
-            <Link href={`/matches/${match.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+            <Link
+              href={`/matches/${match.id}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <div
                 style={{
                   border: "1px solid #ccc",
