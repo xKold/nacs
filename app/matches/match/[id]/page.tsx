@@ -1,7 +1,7 @@
 export default async function Page(props: any) {
   const { id } = props.params;
 
-  const championshipId = "f56331e8-131a-4c50-b7db-eec8b010ff98";
+  const championshipId = "81e36970-81ec-4e53-b2af-c0a1c0b52938";
 
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
