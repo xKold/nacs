@@ -16,6 +16,12 @@ const events: Event[] = [
     region: 'North America',
     startDate: '2025-07-01',
   },
+  {
+    id: '81e36970-81ec-4e53-b2af-c0a1c0b52938',
+    name: 'Off Season Shenanigans S8 Playoffs',
+    region: 'North America',
+    startDate: '2025-07-XX', // put actual date if you want
+  },
 ];
 
 export default function EventList() {

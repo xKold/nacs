@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default async function Page({ params }: any) {
   const { championshipId } = params;
 
@@ -80,7 +82,8 @@ export default async function Page({ params }: any) {
     return (
       <li key={match.match_id}>
         <a href={`/matches/match/${match.match_id}`}>
-          {team1} vs {team2} — {matchTime}{score}
+          {team1} vs {team2} — {matchTime}
+          {score}
         </a>
       </li>
     );
@@ -88,6 +91,27 @@ export default async function Page({ params }: any) {
 
   return (
     <main style={{ padding: 20 }}>
+      {/* TAB NAV */}
+      <nav
+        style={{
+          marginBottom: 20,
+          borderBottom: '1px solid #ccc',
+          paddingBottom: 10,
+          display: 'flex',
+          gap: 20,
+        }}
+      >
+        <Link
+          href={`/matches/event/${championshipId}`}
+          style={{ fontWeight: 'bold', color: 'blue', textDecoration: 'underline' }}
+        >
+          Matches
+        </Link>
+        <Link href={`/matches/event/${championshipId}/bracket`} style={{ color: 'gray' }}>
+          Bracket
+        </Link>
+      </nav>
+
       <h1>Matches for Championship</h1>
 
       {ongoing.length > 0 && (
