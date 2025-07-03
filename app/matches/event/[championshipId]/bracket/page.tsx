@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Bracket, BracketGame } from "react-tournament-bracket";
 
-export default function Page({ params }: { params: { championshipId: string } }) {
+export default async function Page({ params }: { params: { championshipId: string } }) {
   const { championshipId } = params;
   const [rootMatch, setRootMatch] = React.useState(null);
   const [error, setError] = React.useState(null);
