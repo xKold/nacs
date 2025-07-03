@@ -35,7 +35,7 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
   const computeOverallStats = () => {
     if (!matchStats.rounds || matchStats.rounds.length === 0) return null;
 
-    // Initialize overall teams structure
+    // Initialize overall teams structure with empty players & 0 scores
     const overallTeams = matchStats.rounds[0].teams.map(team => ({
       team_name: team.team_name,
       players: [] as PlayerStats[],
@@ -50,7 +50,7 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
         team.players.forEach(player => {
           let existing = overallTeams[teamIdx].players.find(p => p.player_id === player.player_id);
           if (!existing) {
-            // Clone the player object with numeric stats
+            // Clone the player object with zeroed stats for aggregation
             existing = {
               ...player,
               player_stats: {
@@ -63,21 +63,24 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
             overallTeams[teamIdx].players.push(existing);
           }
 
-          // Sum kills, deaths, assists numerically
+          // Before updating, store old kills and headshot count
+          const oldKills = existing.player_stats.Kills;
+          const oldHSCount = oldKills * (existing.player_stats["Headshots %"] / 100);
+
+          // Add kills, deaths, assists numerically
           existing.player_stats.Kills += player.player_stats.Kills;
           existing.player_stats.Deaths += player.player_stats.Deaths;
           existing.player_stats.Assists += player.player_stats.Assists;
 
-          // Calculate weighted headshot count (kills * HS%)
-          const prevHeadshotCount = (existing.player_stats.Kills - player.player_stats.Kills) * (existing.player_stats["Headshots %"] / 100);
-          const currentHeadshotCount = player.player_stats.Kills * (player.player_stats["Headshots %"] / 100);
+          // Calculate new headshot count for current round
+          const currentHSCount = player.player_stats.Kills * (player.player_stats["Headshots %"] / 100);
 
-          // New total kills and new total headshot count
-          const newTotalKills = existing.player_stats.Kills;
-          const newTotalHeadshots = prevHeadshotCount + currentHeadshotCount;
+          // Calculate weighted headshots total
+          const totalKills = existing.player_stats.Kills;
+          const totalHSCount = oldHSCount + currentHSCount;
 
-          // Calculate new weighted HS %
-          existing.player_stats["Headshots %"] = newTotalKills > 0 ? (newTotalHeadshots / newTotalKills) * 100 : 0;
+          // Update weighted Headshots %
+          existing.player_stats["Headshots %"] = totalKills > 0 ? (totalHSCount / totalKills) * 100 : 0;
         });
       });
     });

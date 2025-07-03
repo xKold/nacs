@@ -49,28 +49,60 @@ export default async function Page({ params }: any) {
     resultMap.set(result.match_id, result);
   });
 
-  // Sort matches
+  // Sort matches using scheduled_at or started_at (in seconds), convert to ms
   const now = Date.now();
   const ongoing: any[] = [];
   const upcoming: any[] = [];
   const past: any[] = [];
 
   matchData.items.forEach((match: any) => {
-    const start = match.start_date ? new Date(match.start_date).getTime() : 0;
+    // Prefer scheduled_at, fallback to started_at; convert to ms
+    const start =
+      typeof match.scheduled_at === 'number'
+        ? match.scheduled_at * 1000
+        : typeof match.started_at === 'number'
+        ? match.started_at * 1000
+        : NaN;
+
     if (match.status === 'ongoing') {
       ongoing.push(match);
-    } else if (start > now) {
-      upcoming.push(match);
+    } else if (!isNaN(start)) {
+      if (start > now) {
+        upcoming.push(match);
+      } else {
+        past.push(match);
+      }
     } else {
-      past.push(match);
+      // If no valid start time, consider upcoming by default
+      upcoming.push(match);
     }
   });
+
+  // Optionally sort each group by start time ascending
+  const sortByStartTime = (a: any, b: any) => {
+    const aStart =
+      (a.scheduled_at ?? a.started_at ?? 0) * 1000;
+    const bStart =
+      (b.scheduled_at ?? b.started_at ?? 0) * 1000;
+    return aStart - bStart;
+  };
+  ongoing.sort(sortByStartTime);
+  upcoming.sort(sortByStartTime);
+  past.sort(sortByStartTime);
 
   const renderMatch = (match: any) => {
     const team1 = match.teams?.faction1?.name || 'TBD';
     const team2 = match.teams?.faction2?.name || 'TBD';
-    const matchTime = match.start_date
-      ? new Date(match.start_date).toLocaleString()
+
+    const timestamp =
+      typeof match.scheduled_at === 'number'
+        ? match.scheduled_at * 1000
+        : typeof match.started_at === 'number'
+        ? match.started_at * 1000
+        : NaN;
+
+    const matchTime = !isNaN(timestamp)
+      ? new Date(timestamp).toLocaleString()
       : 'Unknown Time';
 
     const result = resultMap.get(match.match_id);
