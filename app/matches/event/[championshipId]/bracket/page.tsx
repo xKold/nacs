@@ -73,7 +73,7 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
   matchMap.set(m.match_id, {
     id: m.match_id,
     name: `Match ${m.match_id}`,
-    scheduled: m.start_time ? new Date(m.start_time) : undefined,  // <-- here
+    scheduled: m.start_time ?? undefined,
     participants: [
       buildParticipant(m.teams.faction1, m.winner),
       buildParticipant(m.teams.faction2, m.winner),
