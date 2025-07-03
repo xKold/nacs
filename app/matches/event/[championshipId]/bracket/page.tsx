@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bracket, BracketGame, Model } from "react-tournament-bracket";
+import { Bracket, BracketGame } from "react-tournament-bracket";
 
 type Team = {
   id: string;
@@ -30,6 +30,31 @@ type RawMatch = {
   position: number;
   best_of: number;
 };
+
+// Define the types based on the library's expected structure
+interface Participant {
+  id: string;
+  name: string;
+  abbreviation?: string;
+  resultText?: string;
+  isWinner?: boolean;
+  status?: string;
+}
+
+interface GameSides {
+  home: Participant;
+  visitor: Participant;
+}
+
+interface Game {
+  id: string;
+  name: string;
+  scheduled?: number;
+  sides: GameSides;
+  state: "scheduled" | "inProgress" | "complete";
+  nextMatchId?: string;
+  previousGames?: Game[];
+}
 
 type Params = Promise<{ championshipId: string }>;
 
@@ -66,7 +91,7 @@ function formatMatchTime(timestamp?: number): string {
 }
 
 // Build participant for react-tournament-bracket
-function buildParticipant(team: Team, score?: number, isWinner?: boolean): Model.Participant {
+function buildParticipant(team: Team, score?: number, isWinner?: boolean): Participant {
   return {
     id: team.id,
     name: team.name,
@@ -78,7 +103,7 @@ function buildParticipant(team: Team, score?: number, isWinner?: boolean): Model
 }
 
 // Build Game for react-tournament-bracket
-function buildGame(match: RawMatch): Model.Game {
+function buildGame(match: RawMatch): Game {
   const isFinished = match.status === "finished";
   const winner = match.results?.winner;
   
@@ -101,7 +126,7 @@ function buildGame(match: RawMatch): Model.Game {
 }
 
 // Create bracket structure for single elimination
-function createBracketStructure(matches: RawMatch[]): Model.Game | null {
+function createBracketStructure(matches: RawMatch[]): Game | null {
   if (matches.length === 0) return null;
 
   // Sort matches by round and position
@@ -125,7 +150,7 @@ function createBracketStructure(matches: RawMatch[]): Model.Game | null {
   if (rounds.length === 0) return null;
 
   // Build the bracket tree recursively
-  function buildRound(roundIndex: number, matchIndex: number): Model.Game | null {
+  function buildRound(roundIndex: number, matchIndex: number): Game | null {
     if (roundIndex >= rounds.length) return null;
     
     const match = rounds[roundIndex][matchIndex];
@@ -169,7 +194,7 @@ function createBracketStructure(matches: RawMatch[]): Model.Game | null {
 }
 
 // Custom Game Component with better styling
-function CustomBracketGame({ game, ...props }: { game: Model.Game; [key: string]: any }) {
+function CustomBracketGame({ game, ...props }: { game: Game; [key: string]: any }) {
   const isComplete = game.state === "complete";
   const isInProgress = game.state === "inProgress";
   
@@ -291,7 +316,7 @@ function CustomBracketGame({ game, ...props }: { game: Model.Game; [key: string]
 
 export default function BracketPage({ params }: { params: Params }) {
   const [championshipId, setChampionshipId] = useState<string>("");
-  const [bracketGame, setBracketGame] = useState<Model.Game | null>(null);
+  const [bracketGame, setBracketGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
