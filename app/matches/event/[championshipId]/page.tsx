@@ -79,7 +79,7 @@ export default async function Page({ params }: any) {
 
     return (
       <li key={match.match_id}>
-        <a href={`/matches/event/${championshipId}/match/${match.match_id}`}>
+        <a href={`/matches/match/${match.match_id}`}>
           {team1} vs {team2} — {matchTime}{score}
         </a>
       </li>
