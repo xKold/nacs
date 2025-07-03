@@ -142,7 +142,7 @@ function Bracket({ rounds }: { rounds: Round[] }) {
 export default async function Page({
   params,
 }: {
-  params: { championshipId: string };
+  params: any;
 }) {
   const { championshipId } = params;
 
