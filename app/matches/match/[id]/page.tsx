@@ -44,7 +44,9 @@ export default async function Page({ params }: any) {
 
   return (
     <main style={{ padding: 20 }}>
-      <Link href={`/matches/championship/${championshipId}`}>← Back to Match List</Link>
+      <Link href={`/matches/match/${match.match_id}`}>
+  {match.teams[0]?.nickname} vs {match.teams[1]?.nickname}
+</Link>
       <h1>{team1} vs {team2}</h1>
       <p><strong>Date:</strong> {startTime}</p>
       <p><strong>Status:</strong> {match.status || "Unknown"}</p>
