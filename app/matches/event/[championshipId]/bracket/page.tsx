@@ -2,13 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import * as JSOG from "jsog";
+import { useParams } from "next/navigation";
 import { Bracket, BracketGame, Model } from "react-tournament-bracket";
 
 type Team = {
   id: string;
   name: string;
-  avatar?: string;
 };
 
 type RawMatch = {
@@ -24,16 +23,16 @@ type RawMatch = {
   next_match_side?: "home" | "away";
 };
 
-// Fetch raw matches from Faceit API
+// Your fetch function (client side)
 async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   const headers = {
-    Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
+    Authorization: `Bearer ${process.env.NEXT_PUBLIC_FACEIT_API_KEY}`,
     Accept: "application/json",
   };
 
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
-    { headers, cache: "no-store" }
+    { headers }
   );
 
   if (!res.ok) {
@@ -56,15 +55,12 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }));
 }
 
-// Convert raw matches into the structure expected by react-tournament-bracket
 function buildBracketTree(matches: RawMatch[]): Model.Game | null {
   if (!matches.length) return null;
 
-  // Map matches by ID for quick lookup
   const matchMap = new Map<string, Model.Game>();
 
-  // Helper to build a Model.Participant
-  const buildParticipant = (team: Team, winner: string | undefined): Model.Participant => ({
+  const buildParticipant = (team: Team, winner?: string): Model.Participant => ({
     id: team.id,
     name: team.name,
     abbreviation: "",
@@ -72,7 +68,6 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
     isWinner: winner === team.id,
   });
 
-  // Create Model.Game objects
   matches.forEach((m) => {
     matchMap.set(m.match_id, {
       id: m.match_id,
@@ -93,7 +88,6 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
     });
   });
 
-  // Link matches by nextMatchId
   matchMap.forEach((game) => {
     if (game.nextMatchId) {
       const nextGame = matchMap.get(game.nextMatchId);
@@ -104,7 +98,6 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
     }
   });
 
-  // Find root match (has no nextMatchId or isn't anyone's nextMatchId)
   const nextIds = new Set(
     Array.from(matchMap.values())
       .map((m) => m.nextMatchId)
@@ -113,29 +106,25 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
 
   for (const game of matchMap.values()) {
     if (!nextIds.has(game.id)) {
-      return game; // root match found
+      return game; // root
     }
   }
 
   return null;
 }
 
-type PageProps = {
-  params: { championshipId: string };
-};
+export default function Page() {
+  const { championshipId } = useParams();
 
-export default async function Page({ params }: PageProps) {
-  const { championshipId } = params;
+  const [tournament, setTournament] = React.useState<Model.Game | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-  let rootMatch: Model.Game | null = null;
-  let error: string | null = null;
-
-  try {
-    const rawMatches = await fetchMatches(championshipId);
-    rootMatch = buildBracketTree(rawMatches);
-  } catch (e: any) {
-    error = e.message;
-  }
+  React.useEffect(() => {
+    if (!championshipId) return;
+    fetchMatches(championshipId)
+      .then((matches) => setTournament(buildBracketTree(matches)))
+      .catch((e) => setError(String(e)));
+  }, [championshipId]);
 
   if (error) {
     return (
@@ -146,9 +135,7 @@ export default async function Page({ params }: PageProps) {
     );
   }
 
-  if (!rootMatch) {
-    return <p>Loading bracket or no matches available...</p>;
-  }
+  if (!tournament) return <p>Loading bracket...</p>;
 
   return (
     <main>
@@ -161,7 +148,7 @@ export default async function Page({ params }: PageProps) {
 
       <h1 style={{ textAlign: "center" }}>Bracket</h1>
 
-      <Bracket game={rootMatch} GameComponent={BracketGame} homeOnTop={true} />
+      <Bracket game={tournament} GameComponent={BracketGame} homeOnTop={true} />
     </main>
   );
 }
