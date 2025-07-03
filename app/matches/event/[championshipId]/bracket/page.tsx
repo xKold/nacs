@@ -29,18 +29,6 @@ export default async function Page({
 }) {
   const { championshipId } = params;
 
-async function fetchMatches(championshipId: string): Promise<Match[]> {
-  const res = await fetch(
-    `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
-        Accept: 'application/json',
-      },
-      cache: 'no-store',
-    }
-  );
-
   if (!res.ok) {
     throw new Error(`Failed to fetch matches: ${res.status}`);
   }
