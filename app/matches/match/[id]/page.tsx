@@ -1,7 +1,4 @@
-import MatchStatsDisplay from './MatchStatsDisplay';
-import { notFound } from 'next/navigation';
-
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page({ params }: { params: any }) {
   const { id } = params;
 
   const headers = {
