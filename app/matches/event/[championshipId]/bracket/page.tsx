@@ -22,6 +22,13 @@ type Round = {
   matches: Match[];
 };
 
+export default async function Page({
+  params,
+}: {
+  params: { championshipId: string };
+}) {
+  const { championshipId } = params;
+
 async function fetchMatches(championshipId: string): Promise<Match[]> {
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
