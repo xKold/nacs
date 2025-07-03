@@ -24,15 +24,17 @@ type RawMatch = {
 
 type Params = Promise<{ championshipId: string }>;
 
+// Fetch matches for a tournament (championship)
 async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
-  const headers = {
-    Authorization: `Bearer ${process.env.NEXT_PUBLIC_FACEIT_API_KEY}`,
-    Accept: "application/json",
-  };
-
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
-    { headers, cache: "no-store" }
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_FACEIT_API_KEY}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    }
   );
 
   if (!res.ok) {
@@ -43,43 +45,100 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   return data.items as RawMatch[];
 }
 
+// Convert ISO date string to EST timestamp (milliseconds)
 function toESTTimestamp(isoDate?: string): number {
   if (!isoDate) return 0;
   const utcDate = new Date(isoDate);
-  return utcDate.getTime() - 5 * 60 * 60 * 1000; // EST = UTC-5
+  // EST is UTC-5 without DST adjustments
+  const estOffsetMs = 5 * 60 * 60 * 1000;
+  return utcDate.getTime() - estOffsetMs;
 }
 
-// Build a minimal game object with only id, name, scheduled (no nested games)
-function buildGame(m: RawMatch): Model.Game {
-  const faction1Name = m.teams.faction1?.name || "TBD";
-  const faction2Name = m.teams.faction2?.name || "TBD";
-  const winner = m.winner;
-
-  // Embed winner label into string
-  const name = `${faction1Name}${winner === m.teams.faction1?.id ? " (W)" : ""} vs ${faction2Name}${winner === m.teams.faction2?.id ? " (W)" : ""}`;
-
+// Build participant object used by react-tournament-bracket
+function buildParticipant(team: Team, winnerId?: string) {
   return {
-    id: m.match_id,
-    name,
-    scheduled: toESTTimestamp(m.start_date),
-    // no previousGames, no participants, no home/away
-  } as Model.Game; // cast because your Game type might be incomplete
+    id: team.id,
+    name: team.name,
+    abbreviation: team.name.slice(0, 3).toUpperCase(),
+    resultText: winnerId === team.id ? "W" : "",
+    isWinner: winnerId === team.id,
+  };
+}
+
+// Build Game object for react-tournament-bracket from RawMatch
+function buildGame(match: RawMatch): Model.Game {
+  return {
+    id: match.match_id,
+    name: `Match ${match.match_id}`,
+    scheduled: toESTTimestamp(match.start_date) || 0,
+    state:
+      match.status === "finished"
+        ? "complete"
+        : match.status === "running"
+        ? "inProgress"
+        : "pending",
+    nextMatchId: match.next_match_id,
+    nextMatchSide: match.next_match_side,
+    home: buildParticipant(match.teams.faction1, match.winner),
+    away: buildParticipant(match.teams.faction2, match.winner),
+  };
+}
+
+// Build bracket tree from flat matches list
+function buildBracketTree(matches: RawMatch[]): Model.Game | null {
+  if (matches.length === 0) return null;
+
+  // Map of match_id => Game
+  const gamesMap = new Map<string, Model.Game>();
+
+  matches.forEach((match) => {
+    gamesMap.set(match.match_id, buildGame(match));
+  });
+
+  // Link previousGames (optional, some bracket libs use this)
+  gamesMap.forEach((game) => {
+    if (game.nextMatchId) {
+      const nextGame = gamesMap.get(game.nextMatchId);
+      if (nextGame) {
+        // react-tournament-bracket expects previousGames as a tuple
+        // but if your version doesn't support it, remove or ignore
+        if (!("previousGames" in nextGame)) {
+          // @ts-ignore
+          nextGame.previousGames = [];
+        }
+        // @ts-ignore
+        nextGame.previousGames.push(game);
+      }
+    }
+  });
+
+  // Find root game (one without nextMatchId pointing to it)
+  const nextIds = new Set(
+    Array.from(gamesMap.values())
+      .map((g) => g.nextMatchId)
+      .filter((id): id is string => !!id)
+  );
+
+  for (const game of gamesMap.values()) {
+    if (!nextIds.has(game.id)) {
+      return game;
+    }
+  }
+
+  return null;
 }
 
 export default async function Page({ params }: { params: Params }) {
   const { championshipId } = await params;
 
-  let error: string | null = null;
   let rootGame: Model.Game | null = null;
+  let error: string | null = null;
 
   try {
     const matches = await fetchMatches(championshipId);
-    if (matches.length) {
-      // Just use the first match as the root to satisfy component for now
-      rootGame = buildGame(matches[0]);
-    }
+    rootGame = buildBracketTree(matches);
   } catch (e: any) {
-    error = e.message || "Unknown error";
+    error = e.message;
   }
 
   if (error) {
