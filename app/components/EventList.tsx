@@ -11,7 +11,7 @@ type Event = {
 
 const events: Event[] = [
   {
-    id: '3de05c27-da01-4ede-9319-f5b3f16dfb1f',
+    id: 'f56331e8-131a-4c50-b7db-eec8b010ff98',
     name: 'Off Season Shenanigans S8',
     region: 'North America',
     startDate: '2025-07-01',
