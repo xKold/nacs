@@ -1,10 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import {
-  MatchProps,
-  Tournament,
-  Bracket,
-} from "react-tournament-bracket";
+import { Tournament, Bracket } from "react-tournament-bracket";
 
 type Team = {
   name: string;
@@ -22,15 +18,13 @@ type RawMatch = {
   status: string;
 };
 
-// Build tournament tree with bye handling
 function buildTournament(matches: RawMatch[]): Tournament {
-  const matchMap = new Map<string, MatchProps>();
+  const matchMap = new Map<string, any>();
 
   matches.forEach((m) => {
     const team1 = m.teams.faction1;
     const team2 = m.teams.faction2;
 
-    // Bye handling: if one team is TBD, other auto-wins
     let winner = m.winner;
     if (
       (!team1.name || team1.name === "TBD") &&
@@ -112,7 +106,6 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }));
 }
 
-// Bypass type error with 'any' for params
 export default async function Page({ params }: { params: any }) {
   const { championshipId } = params;
   let matches: RawMatch[] = [];
@@ -173,7 +166,7 @@ export default async function Page({ params }: { params: any }) {
                   cursor: "pointer",
                 }}
               >
-                {match.participants.map((p) => (
+                {match.participants.map((p: any) => (
                   <div
                     key={p.id}
                     style={{
