@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mapFaceitToMatches } from '@/lib/faceitBracketParser';
-import { mockMatches } from '@/lib/mockMatches'; // optional fallback
 
 export async function GET(req: NextRequest) {
   const championshipId = req.nextUrl.searchParams.get('championshipId');
