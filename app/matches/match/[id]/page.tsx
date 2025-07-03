@@ -8,11 +8,10 @@ export default async function Page({ params }: { params: { id: string } }) {
     Accept: 'application/json',
   };
 
-  // Fetch match details
-  const matchDetailRes = await fetch(
-    `https://open.faceit.com/data/v4/matches/${id}`,
-    { headers, cache: 'no-store' }
-  );
+  const matchDetailRes = await fetch(`https://open.faceit.com/data/v4/matches/${id}`, {
+    headers,
+    cache: 'no-store',
+  });
 
   if (!matchDetailRes.ok) {
     return (
@@ -24,15 +23,12 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   const matchDetails = await matchDetailRes.json();
 
-  // Fetch match stats
-  const matchStatsRes = await fetch(
-    `https://open.faceit.com/data/v4/matches/${id}/stats`,
-    { headers, cache: 'no-store' }
-  );
+  const matchStatsRes = await fetch(`https://open.faceit.com/data/v4/matches/${id}/stats`, {
+    headers,
+    cache: 'no-store',
+  });
 
-  const matchStats = matchStatsRes.ok
-    ? await matchStatsRes.json()
-    : { rounds: [] };
+  const matchStats = matchStatsRes.ok ? await matchStatsRes.json() : { rounds: [] };
 
   return (
     <main style={{ padding: 20 }}>
