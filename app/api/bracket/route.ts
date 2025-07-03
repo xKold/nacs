@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mapFaceitToMatches } from 'app/lib/faceitBracketParcer.ts';
+import { mapFaceitToMatches } from 'app/lib/faceitBracketParser';
 
 export async function GET(req: NextRequest) {
   const championshipId = req.nextUrl.searchParams.get('championshipId');
