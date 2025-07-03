@@ -42,7 +42,7 @@ export default function MatchesPage() {
               borderBottom: '1px solid #444',
             }}
           >
-            <Link href={`/matches/${m.match_id}`} style={{ fontWeight: 'bold', color: '#eee' }}>
+            <Link href={`/matches/event/${TOURNAMENT_ID}/match/${m.match_id}`} style={{ fontWeight: 'bold', color: '#eee' }}>
               {m.teams[0]?.nickname} vs {m.teams[1]?.nickname}
             </Link>
             <span>{new Date(m.start_date).toLocaleString()}</span>
