@@ -6,7 +6,8 @@ export default async function Page({ params }: any) {
     {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${FACEIT_API_KEY}`,
+        Authorization: `Bearer ${process.env.FACEIT_API_KEY}
+`,
         Accept: 'application/json',
       },
       cache: 'no-store',
