@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Match as BracketMatch,
   MatchProps,
   Tournament,
   TournamentBracket,
@@ -113,11 +112,8 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }));
 }
 
-type PageProps = {
-  params: { championshipId: string };
-};
-
-export default async function Page({ params }: PageProps) {
+// @ts-ignore
+export default async function Page({ params }: { params: { championshipId: string } }) {
   const { championshipId } = params;
   let matches: RawMatch[] = [];
   let error: string | null = null;
