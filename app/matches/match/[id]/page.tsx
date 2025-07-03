@@ -1,12 +1,8 @@
 // app/matches/match/[id]/page.tsx
 import MatchStatsDisplay from './MatchStatsDisplay';
 
-interface Params {
-  id: string;
-}
-
-export default async function Page({ params }: { params: Params }) {
-  const { id } = params;
+export default async function Page(props: { params: { id: string } }) {
+  const { id } = props.params;
 
   const headers = {
     Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
