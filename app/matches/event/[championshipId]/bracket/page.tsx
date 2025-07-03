@@ -1,4 +1,3 @@
-// app/matches/event/[championshipId]/bracket/page.tsx
 "use client";
 
 import React from "react";
@@ -56,12 +55,13 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }));
 }
 
+// No explicit typing for participants, just inline objects:
 function buildBracketTree(matches: RawMatch[]): Model.Game | null {
   if (!matches.length) return null;
 
   const matchMap = new Map<string, Model.Game>();
 
-  const buildParticipant = (team: Team, winner?: string): Model.Participant => ({
+  const buildParticipant = (team: Team, winner?: string) => ({
     id: team.id,
     name: team.name,
     abbreviation: "",
@@ -107,7 +107,7 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
 
   for (const game of matchMap.values()) {
     if (!nextIds.has(game.id)) {
-      return game; // root
+      return game; // root game found
     }
   }
 
@@ -115,7 +115,6 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
 }
 
 export default async function Page({ params }: { params: Params }) {
-  // Await the params per your suggestion
   const { championshipId } = await params;
 
   let rootMatch: Model.Game | null = null;
