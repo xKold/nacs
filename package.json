@@ -26,6 +26,6 @@
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4",
     "@types/uuid": "^9.0.1",
-    "@types/underscore": "^1.9.2",
+    "@types/underscore": "^1.9.2"
   }
 }
