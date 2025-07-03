@@ -1,4 +1,3 @@
-// app/matches/event/[championshipId]/bracket/page.tsx
 import React from 'react';
 import Link from 'next/link';
 
@@ -21,13 +20,6 @@ type Match = {
 type Round = {
   roundNumber: number;
   matches: Match[];
-};
-
-// Props type for Next.js App Router page component
-type PageProps = {
-  params: {
-    championshipId: string;
-  };
 };
 
 async function fetchMatches(championshipId: string): Promise<Match[]> {
@@ -59,9 +51,8 @@ async function fetchMatches(championshipId: string): Promise<Match[]> {
   }));
 }
 
-// Simple chunk function to split matches into rounds
 function groupMatchesByRound(matches: Match[]): Round[] {
-  const numRounds = 3; // You can adjust or infer dynamically
+  const numRounds = 3;
   const chunkSize = Math.max(Math.ceil(matches.length / numRounds), 1);
 
   const rounds: Round[] = [];
@@ -148,7 +139,11 @@ function Bracket({ rounds }: { rounds: Round[] }) {
   );
 }
 
-export default async function Page({ params }: PageProps) {
+export default async function Page({
+  params,
+}: {
+  params: { championshipId: string };
+}) {
   const { championshipId } = params;
 
   let matches: Match[] = [];
