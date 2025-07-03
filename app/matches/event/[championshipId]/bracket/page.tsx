@@ -1,48 +1,45 @@
-'use client';
+// app/matches/event/[championshipId]/bracket/page.tsx
+import React from 'react';
 
-import { useEffect, useState } from 'react';
-import {
-  SingleEliminationBracket,
-  SVGViewer
-} from '@g-loot/react-tournament-brackets';
-import { BracketMatch } from '@g-loot/react-tournament-brackets/dist/types';
-import { mockMatches } from '@/lib/mockMatches'; // fallback for now
+interface Match {
+  match_id: string;
+  teams: {
+    faction1: { name: string };
+    faction2: { name: string };
+  };
+}
 
-export default function BracketPage({
-  params
-}: {
-  params: { championshipId: string };
-}) {
-  const [matches, setMatches] = useState<BracketMatch[]>([]);
+async function fetchMatches(championshipId: string): Promise<Match[]> {
+  const res = await fetch(`https://open.faceit.com/data/v4/matches?event_id=${championshipId}/matches`, {
+    headers: {
+      'Authorization': `Bearer ${process.env.FACEIT_API_KEY}`,  // Use env var
+    },
+    // Next.js revalidate option (optional)
+    next: { revalidate: 60 },
+  });
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await fetch(`/api/matches?championshipId=${params.championshipId}`);
-        const data = await res.json();
+  if (!res.ok) {
+    throw new Error('Failed to fetch matches');
+  }
+  const data = await res.json();
+  return data.items || [];
+}
 
-        // TODO: replace with actual Faceit mapping logic
-        setMatches(data?.matches || mockMatches);
-      } catch (err) {
-        console.error('Failed to fetch bracket:', err);
-        setMatches(mockMatches);
-      }
-    }
-
-    fetchData();
-  }, [params.championshipId]);
+export default async function BracketPage({ params }: { params: { championshipId: string } }) {
+  const matches = await fetchMatches(params.championshipId);
 
   return (
-    <div style={{ width: '100%', height: '100vh', padding: '1rem' }}>
-      <SingleEliminationBracket
-        matches={matches}
-        svgWrapper={({ children, ...props }) => (
-          <SVGViewer width={1200} height={800} {...props}>
-            {children}
-          </SVGViewer>
-        )}
-        matchComponent={undefined}
-      />
+    <div>
+      <h1>Bracket for Championship {params.championshipId}</h1>
+      <div className="bracket">
+        {matches.map((match) => (
+          <div key={match.match_id} className="match">
+            <div>{match.teams.faction1.name}</div>
+            <div>vs</div>
+            <div>{match.teams.faction2.name}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
