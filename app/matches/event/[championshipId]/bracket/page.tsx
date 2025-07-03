@@ -16,7 +16,7 @@ type RawMatch = {
     faction2: Team;
   };
   winner?: string;
-  start_time?: number;
+  start_date?: string; // ISO string from Faceit API
   status: string;
   next_match_id?: string;
   next_match_side?: "home" | "away";
@@ -41,73 +41,76 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
 
   const data = await res.json();
 
-  return data.items.map((m: any) => ({
-    match_id: m.match_id,
-    teams: {
-      faction1: m.teams?.faction1 || { id: "tbd1", name: "TBD" },
-      faction2: m.teams?.faction2 || { id: "tbd2", name: "TBD" },
-    },
-    winner: m.winner,
-    start_time: m.start_date ? new Date(m.start_date).getTime() : undefined,
-    status: m.status,
-    next_match_id: m.next_match_id,
-    next_match_side: m.next_match_side,
-  }));
+  return data.items as RawMatch[];
 }
 
-// No explicit typing for participants, just inline objects:
+// Converts ISO date string to EST timestamp (ms)
+function toESTTimestamp(isoDate?: string): number | undefined {
+  if (!isoDate) return undefined;
+  const utcDate = new Date(isoDate);
+
+  // EST is UTC-5, ignoring DST for simplicity
+  // Adjust the time to EST by subtracting 5 hours (5 * 60 * 60 * 1000 ms)
+  const estOffsetMs = 5 * 60 * 60 * 1000;
+  return utcDate.getTime() - estOffsetMs;
+}
+
+function buildParticipant(team: Team, winner?: string) {
+  return {
+    id: team.id,
+    name: team.name,
+    abbreviation: "",
+    isWinner: winner === team.id,
+    resultText: winner === team.id ? "W" : "",
+  };
+}
+
 function buildBracketTree(matches: RawMatch[]): Model.Game | null {
   if (!matches.length) return null;
 
   const matchMap = new Map<string, Model.Game>();
 
-  const buildParticipant = (team: Team, winner?: string) => ({
-    id: team.id,
-    name: team.name,
-    abbreviation: "",
-    resultText: winner === team.id ? "W" : "",
-    isWinner: winner === team.id,
-  });
-
   matches.forEach((m) => {
-  matchMap.set(m.match_id, {
-    id: m.match_id,
-    name: `Match ${m.match_id}`,
-    scheduled: m.start_time ?? 0,
-    participants: [
-      buildParticipant(m.teams.faction1, m.winner),
-      buildParticipant(m.teams.faction2, m.winner),
-    ],
-    state:
-      m.status === "finished"
-        ? "complete"
-        : m.status === "running"
-        ? "inProgress"
-        : "pending",
-    nextMatchId: m.next_match_id,
-    nextMatchSide: m.next_match_side,
+    const game: Model.Game = {
+      id: m.match_id,
+      name: `Match ${m.match_id}`,
+      scheduled: toESTTimestamp(m.start_date) ?? 0,
+      state:
+        m.status === "finished"
+          ? "complete"
+          : m.status === "running"
+          ? "inProgress"
+          : "pending",
+      home: buildParticipant(m.teams.faction1, m.winner),
+      away: buildParticipant(m.teams.faction2, m.winner),
+      nextMatchId: m.next_match_id,
+      nextMatchSide: m.next_match_side,
+      previousGames: [],
+    };
+    matchMap.set(m.match_id, game);
   });
-});
 
+  // Link previous games
   matchMap.forEach((game) => {
     if (game.nextMatchId) {
       const nextGame = matchMap.get(game.nextMatchId);
       if (nextGame) {
-        if (!nextGame.previousGames) nextGame.previousGames = [];
+        nextGame.previousGames = nextGame.previousGames || [];
         nextGame.previousGames.push(game);
       }
     }
   });
 
+  // Find root game (no one points to it)
   const nextIds = new Set(
     Array.from(matchMap.values())
-      .map((m) => m.nextMatchId)
+      .map((g) => g.nextMatchId)
       .filter(Boolean) as string[]
   );
 
   for (const game of matchMap.values()) {
     if (!nextIds.has(game.id)) {
-      return game; // root game found
+      return game;
     }
   }
 
@@ -124,7 +127,7 @@ export default async function Page({ params }: { params: Params }) {
     const rawMatches = await fetchMatches(championshipId);
     rootMatch = buildBracketTree(rawMatches);
   } catch (e: any) {
-    error = e.message;
+    error = e.message || "Unknown error";
   }
 
   if (error) {
@@ -137,12 +140,12 @@ export default async function Page({ params }: { params: Params }) {
   }
 
   if (!rootMatch) {
-    return <p>Loading bracket or no matches available...</p>;
+    return <p style={{ padding: 20 }}>No matches available or still loading...</p>;
   }
 
   return (
-    <main>
-      <nav style={{ padding: 20 }}>
+    <main style={{ padding: 20 }}>
+      <nav style={{ marginBottom: 20 }}>
         <Link href={`/matches/event/${championshipId}`} style={{ marginRight: 20 }}>
           Matches
         </Link>
