@@ -40,7 +40,6 @@ type Params = Promise<{ championshipId: string }>;
 // Fetch tournament data from FACEIT API
 async function fetchTournamentData(championshipId: string): Promise<BracketData> {
   try {
-    // Fetch matches from the tournament using query parameter
     const matchesRes = await fetch(
       `/api/matches?championshipId=${championshipId}`,
       {
@@ -70,13 +69,11 @@ async function fetchTournamentData(championshipId: string): Promise<BracketData>
 
 // Organize matches into bracket rounds
 function organizeBracketRounds(matches: Match[]): Match[][] {
-  // Sort matches by round and position
   const sortedMatches = matches.sort((a, b) => {
     if (a.round !== b.round) return a.round - b.round;
     return a.position - b.position;
   });
 
-  // Group by rounds
   const rounds: Match[][] = [];
   let currentRound = -1;
   
@@ -138,38 +135,33 @@ function getMatchStatus(match: Match): string {
   }
 }
 
-// Match component
-function MatchComponent({ match }: { match: Match }) {
+// Individual match component
+function MatchCard({ match, roundIndex }: { match: Match; roundIndex: number }) {
   const isFinished = match.status === "finished";
   const winner = match.results?.winner;
   
   return (
     <div className="match-card">
-      <div className="match-header">
-        <span className="match-round">
-          {match.round === 4 ? "Finals" : `Round ${match.round}`}
-        </span>
+      <div className="match-info">
         <span className="match-format">
-          BO{match.best_of || (match.round === 4 ? 5 : 3)}
+          BO{match.best_of || (roundIndex === 3 ? 5 : 3)}
         </span>
       </div>
       
-      <div className="teams">
+      <div className="match-teams">
         <div className={`team ${winner === match.teams.faction1.id ? 'winner' : ''}`}>
           <span className="team-name">{match.teams.faction1.name}</span>
           {isFinished && (
-            <span className="score">
+            <span className="team-score">
               {match.results?.score.faction1 || 0}
             </span>
           )}
         </div>
         
-        <div className="vs">vs</div>
-        
         <div className={`team ${winner === match.teams.faction2.id ? 'winner' : ''}`}>
           <span className="team-name">{match.teams.faction2.name}</span>
           {isFinished && (
-            <span className="score">
+            <span className="team-score">
               {match.results?.score.faction2 || 0}
             </span>
           )}
@@ -183,18 +175,41 @@ function MatchComponent({ match }: { match: Match }) {
   );
 }
 
-// Bracket component
-function BracketComponent({ rounds }: { rounds: Match[][] }) {
+// Main bracket component with proper bracket layout
+function TournamentBracket({ rounds }: { rounds: Match[][] }) {
+  const getRoundTitle = (roundIndex: number, totalRounds: number) => {
+    if (roundIndex === totalRounds - 1) return "Finals";
+    if (roundIndex === totalRounds - 2) return "Semifinals";
+    if (roundIndex === totalRounds - 3) return "Quarterfinals";
+    return `Round ${roundIndex + 1}`;
+  };
+
   return (
-    <div className="bracket-container">
+    <div className="tournament-bracket">
       {rounds.map((round, roundIndex) => (
         <div key={roundIndex} className="bracket-round">
-          <h3 className="round-title">
-            {roundIndex === rounds.length - 1 ? "Finals" : `Round ${roundIndex + 1}`}
-          </h3>
+          <div className="round-header">
+            <h3>{getRoundTitle(roundIndex, rounds.length)}</h3>
+          </div>
+          
           <div className="round-matches">
-            {round.map((match) => (
-              <MatchComponent key={match.match_id} match={match} />
+            {round.map((match, matchIndex) => (
+              <div key={match.match_id} className="match-container">
+                <MatchCard match={match} roundIndex={roundIndex} />
+                
+                {/* Connector lines */}
+                {roundIndex < rounds.length - 1 && (
+                  <div className="match-connector">
+                    <div className="connector-line horizontal"></div>
+                    {matchIndex % 2 === 0 && round.length > 1 && (
+                      <>
+                        <div className="connector-line vertical"></div>
+                        <div className="connector-line horizontal-to-next"></div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -230,7 +245,10 @@ export default function BracketPage({ params }: { params: Params }) {
   if (loading) {
     return (
       <main className="bracket-page">
-        <div className="loading">Loading bracket...</div>
+        <div className="loading">
+          <div className="spinner"></div>
+          <p>Loading tournament bracket...</p>
+        </div>
       </main>
     );
   }
@@ -238,9 +256,12 @@ export default function BracketPage({ params }: { params: Params }) {
   if (error) {
     return (
       <main className="bracket-page">
-        <div className="error">
-          <p>Error loading bracket: {error}</p>
-          <Link href={`/matches/event/${championshipId}`}>Back to Matches</Link>
+        <div className="error-state">
+          <h2>Unable to load bracket</h2>
+          <p>{error}</p>
+          <Link href={`/matches/event/${championshipId}`} className="back-link">
+            ← Back to Matches
+          </Link>
         </div>
       </main>
     );
@@ -249,182 +270,309 @@ export default function BracketPage({ params }: { params: Params }) {
   if (!bracketData || bracketData.rounds.length === 0) {
     return (
       <main className="bracket-page">
-        <div className="no-data">No bracket data available</div>
+        <div className="no-data">
+          <h2>No bracket data available</h2>
+          <p>This tournament may not have started yet.</p>
+        </div>
       </main>
     );
   }
 
   return (
     <main className="bracket-page">
-      <nav className="bracket-nav">
-        <Link href={`/matches/event/${championshipId}`}>
+      <header className="bracket-header">
+        <Link href={`/matches/event/${championshipId}`} className="back-link">
           ← Back to Matches
         </Link>
         <h1>Tournament Bracket</h1>
-      </nav>
+        <div className="tournament-info">
+          <span>Single Elimination • {bracketData.teams.length} Teams</span>
+        </div>
+      </header>
 
-      <BracketComponent rounds={bracketData.rounds} />
+      <div className="bracket-wrapper">
+        <TournamentBracket rounds={bracketData.rounds} />
+      </div>
 
       <style jsx>{`
         .bracket-page {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           padding: 20px;
-          max-width: 1200px;
-          margin: 0 auto;
         }
 
-        .bracket-nav {
+        .bracket-header {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 20px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #eee;
+          justify-content: space-between;
+          flex-wrap: wrap;
         }
 
-        .bracket-nav a {
-          color: #007bff;
+        .back-link {
+          color: #667eea;
           text-decoration: none;
+          font-weight: 600;
+          padding: 8px 16px;
+          border-radius: 6px;
+          transition: all 0.2s;
+        }
+
+        .back-link:hover {
+          background: #f8f9ff;
+          transform: translateX(-2px);
+        }
+
+        .bracket-header h1 {
+          margin: 0;
+          color: #2d3748;
+          font-size: 1.8em;
+        }
+
+        .tournament-info {
+          color: #718096;
+          font-size: 0.9em;
           font-weight: 500;
         }
 
-        .bracket-nav a:hover {
-          text-decoration: underline;
-        }
-
-        .bracket-nav h1 {
-          margin: 0;
-          color: #333;
-        }
-
-        .bracket-container {
-          display: flex;
-          gap: 40px;
+        .bracket-wrapper {
+          background: white;
+          border-radius: 12px;
+          padding: 30px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
           overflow-x: auto;
-          padding: 20px 0;
+        }
+
+        .tournament-bracket {
+          display: flex;
+          gap: 60px;
+          min-width: fit-content;
+          align-items: flex-start;
         }
 
         .bracket-round {
-          min-width: 300px;
-          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          min-width: 220px;
         }
 
-        .round-title {
-          text-align: center;
+        .round-header {
           margin-bottom: 20px;
-          color: #333;
-          font-size: 1.2em;
+          text-align: center;
+        }
+
+        .round-header h3 {
+          margin: 0;
+          color: #2d3748;
+          font-size: 1.1em;
+          font-weight: 600;
+          padding: 8px 16px;
+          background: #f7fafc;
+          border-radius: 20px;
+          border: 2px solid #e2e8f0;
         }
 
         .round-matches {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 40px;
+          flex: 1;
+        }
+
+        .match-container {
+          position: relative;
+          display: flex;
+          align-items: center;
         }
 
         .match-card {
           background: white;
-          border: 2px solid #ddd;
+          border: 2px solid #e2e8f0;
           border-radius: 8px;
-          padding: 15px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          transition: transform 0.2s;
+          padding: 12px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          transition: all 0.2s;
+          width: 200px;
+          position: relative;
         }
 
         .match-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          border-color: #667eea;
         }
 
-        .match-header {
+        .match-info {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-          font-size: 0.9em;
-          color: #666;
+          justify-content: center;
+          margin-bottom: 8px;
         }
 
         .match-format {
-          background: #f8f9fa;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: 500;
+          background: #667eea;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-size: 0.75em;
+          font-weight: 600;
         }
 
-        .teams {
-          margin-bottom: 10px;
+        .match-teams {
+          margin-bottom: 8px;
         }
 
         .team {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 0;
-          border-bottom: 1px solid #eee;
+          padding: 6px 8px;
+          border-radius: 4px;
+          margin-bottom: 2px;
+          transition: all 0.2s;
         }
 
-        .team:last-child {
-          border-bottom: none;
+        .team:hover {
+          background: #f7fafc;
         }
 
         .team.winner {
-          background: #e8f5e8;
-          font-weight: bold;
-          color: #2e7d32;
+          background: #c6f6d5;
+          border: 1px solid #38a169;
+          font-weight: 600;
+          color: #2f855a;
         }
 
         .team-name {
-          flex: 1;
+          font-size: 0.85em;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 130px;
         }
 
-        .score {
-          font-weight: bold;
-          font-size: 1.1em;
+        .team-score {
+          font-weight: 700;
+          font-size: 0.9em;
           min-width: 20px;
           text-align: center;
         }
 
-        .vs {
-          text-align: center;
-          font-size: 0.9em;
-          color: #666;
-          margin: 5px 0;
-        }
-
         .match-status {
           text-align: center;
-          font-size: 0.9em;
-          color: #666;
+          font-size: 0.75em;
+          color: #718096;
           font-weight: 500;
+          padding: 4px;
+          background: #f7fafc;
+          border-radius: 4px;
         }
 
-        .loading, .error, .no-data {
-          text-align: center;
-          padding: 40px;
-          font-size: 1.1em;
+        .match-connector {
+          position: absolute;
+          left: 100%;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 1;
         }
 
-        .error {
-          color: #d32f2f;
+        .connector-line {
+          background: #cbd5e0;
+          position: absolute;
+        }
+
+        .connector-line.horizontal {
+          width: 30px;
+          height: 2px;
+          left: 0;
+          top: -1px;
+        }
+
+        .connector-line.vertical {
+          width: 2px;
+          height: 40px;
+          left: 29px;
+          top: -20px;
+        }
+
+        .connector-line.horizontal-to-next {
+          width: 30px;
+          height: 2px;
+          left: 29px;
+          top: -1px;
         }
 
         .loading {
-          color: #666;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 400px;
+          color: white;
+        }
+
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid rgba(255, 255, 255, 0.3);
+          border-top: 4px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .error-state, .no-data {
+          background: white;
+          border-radius: 12px;
+          padding: 40px;
+          text-align: center;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-state h2, .no-data h2 {
+          color: #e53e3e;
+          margin-bottom: 10px;
+        }
+
+        .error-state p, .no-data p {
+          color: #718096;
+          margin-bottom: 20px;
         }
 
         @media (max-width: 768px) {
-          .bracket-container {
-            gap: 20px;
+          .bracket-page {
+            padding: 10px;
+          }
+          
+          .bracket-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 10px;
+          }
+          
+          .tournament-bracket {
+            gap: 40px;
           }
           
           .bracket-round {
-            min-width: 280px;
+            min-width: 180px;
           }
           
-          .bracket-nav {
-            flex-direction: column;
-            gap: 15px;
-            text-align: center;
+          .match-card {
+            width: 160px;
+          }
+          
+          .team-name {
+            max-width: 100px;
           }
         }
       `}</style>
