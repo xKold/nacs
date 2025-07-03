@@ -1,19 +1,25 @@
 // app/matches/event/[championshipId]/page.tsx
 
-interface PageProps {
-  params: {
-    championshipId: string;
+import { Metadata } from "next";
+
+type Params = {
+  championshipId: string;
+};
+
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  return {
+    title: `Matches - ${params.championshipId}`,
   };
 }
 
-export default async function Page({ params }: PageProps) {
+export default async function Page({ params }: { params: Params }) {
   const { championshipId } = params;
 
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
     {
       headers: {
-        Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
+        Authorization: `Bearer ${process.env.FACEIT_API_KEY ?? ""}`,
       },
       cache: "no-store",
     }
@@ -34,7 +40,7 @@ export default async function Page({ params }: PageProps) {
         <ul>
           {data.items.map((match: any) => (
             <li key={match.match_id}>
-              {match.teams[0]?.nickname} vs {match.teams[1]?.nickname}
+              {match.teams?.[0]?.nickname ?? "TBD"} vs {match.teams?.[1]?.nickname ?? "TBD"}
             </li>
           ))}
         </ul>
