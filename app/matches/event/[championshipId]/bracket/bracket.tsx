@@ -12,8 +12,8 @@ type Match = {
     faction1: Team;
     faction2: Team;
   };
-  winner?: string; // team name of winner
-  round_number?: number; // inferred round number
+  winner?: string;
+  start_time?: number;
   status: string;
 };
 
@@ -45,7 +45,6 @@ async function fetchMatches(championshipId: string): Promise<Match[]> {
 
   const data = await res.json();
 
-  // Map matches to Match[]
   return data.items.map((m: any) => ({
     match_id: m.match_id,
     teams: {
@@ -53,28 +52,21 @@ async function fetchMatches(championshipId: string): Promise<Match[]> {
       faction2: m.teams?.faction2 || { name: 'TBD', avatar: '' },
     },
     winner: m.winner,
-    round_number: m.round_number || 1, // fallback if no round_number
+    start_time: m.start_date ? new Date(m.start_date).getTime() : 0,
     status: m.status,
   }));
 }
 
+// Simple fallback round inference based on order
 function groupMatchesByRound(matches: Match[]): Round[] {
-  // Group matches by round_number, sorted ascending
-  const roundsMap = new Map<number, Match[]>();
-
-  matches.forEach((match) => {
-    const round = match.round_number ?? 1;
-    if (!roundsMap.has(round)) roundsMap.set(round, []);
-    roundsMap.get(round)!.push(match);
-  });
-
+  const chunkSize = Math.max(Math.floor(matches.length / 3), 1); // assumes ~3 rounds
   const rounds: Round[] = [];
-  Array.from(roundsMap.entries())
-    .sort(([a], [b]) => a - b)
-    .forEach(([roundNumber, matches]) => {
-      rounds.push({ roundNumber, matches });
+  for (let i = 0; i < matches.length; i += chunkSize) {
+    rounds.push({
+      roundNumber: rounds.length + 1,
+      matches: matches.slice(i, i + chunkSize),
     });
-
+  }
   return rounds;
 }
 
@@ -92,14 +84,14 @@ function Bracket({ rounds }: { rounds: Round[] }) {
                 borderRadius: 8,
                 padding: 12,
                 marginBottom: 20,
-                backgroundColor: match.status === 'completed' ? '#e0ffe0' : '#fff',
+                backgroundColor: match.status === 'finished' ? '#e0ffe0' : '#fff',
               }}
             >
               {[match.teams.faction1, match.teams.faction2].map((team, idx) => {
                 const isWinner = match.winner === team.name;
                 return (
                   <div
-                    key={team.name}
+                    key={team.name + match.match_id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

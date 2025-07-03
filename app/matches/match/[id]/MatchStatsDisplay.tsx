@@ -31,57 +31,51 @@ interface MatchStats {
 export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchStats }) {
   const [selectedMapIndex, setSelectedMapIndex] = useState<number | 'overall'>('overall');
 
-  // Compute overall stats by aggregating all rounds properly
+  // Compute overall stats by summing values and calculating proper weighted HS%
   const computeOverallStats = () => {
     if (!matchStats.rounds || matchStats.rounds.length === 0) return null;
 
-    // Initialize overall teams structure with empty players & 0 scores
     const overallTeams = matchStats.rounds[0].teams.map(team => ({
       team_name: team.team_name,
       players: [] as PlayerStats[],
       team_stats: { FinalScore: 0 },
     }));
 
-    // Aggregate all rounds data correctly
     matchStats.rounds.forEach(round => {
       round.teams.forEach((team, teamIdx) => {
         overallTeams[teamIdx].team_stats.FinalScore += team.team_stats.FinalScore;
 
         team.players.forEach(player => {
           let existing = overallTeams[teamIdx].players.find(p => p.player_id === player.player_id);
+
+          const hsCount = player.player_stats.Kills * (player.player_stats["Headshots %"] / 100);
+
           if (!existing) {
-            // Clone the player object with zeroed stats for aggregation
-            existing = {
+            overallTeams[teamIdx].players.push({
               ...player,
               player_stats: {
-                Kills: 0,
-                Deaths: 0,
-                Assists: 0,
-                "Headshots %": 0,
+                Kills: player.player_stats.Kills,
+                Deaths: player.player_stats.Deaths,
+                Assists: player.player_stats.Assists,
+                "Headshots %": hsCount, // Temporarily store HS count
               },
-            };
-            overallTeams[teamIdx].players.push(existing);
+            });
+          } else {
+            existing.player_stats.Kills += player.player_stats.Kills;
+            existing.player_stats.Deaths += player.player_stats.Deaths;
+            existing.player_stats.Assists += player.player_stats.Assists;
+            existing.player_stats["Headshots %"] += hsCount; // Keep adding raw HS count
           }
-
-          // Before updating, store old kills and headshot count
-          const oldKills = existing.player_stats.Kills;
-          const oldHSCount = oldKills * (existing.player_stats["Headshots %"] / 100);
-
-          // Add kills, deaths, assists numerically
-          existing.player_stats.Kills += player.player_stats.Kills;
-          existing.player_stats.Deaths += player.player_stats.Deaths;
-          existing.player_stats.Assists += player.player_stats.Assists;
-
-          // Calculate new headshot count for current round
-          const currentHSCount = player.player_stats.Kills * (player.player_stats["Headshots %"] / 100);
-
-          // Calculate weighted headshots total
-          const totalKills = existing.player_stats.Kills;
-          const totalHSCount = oldHSCount + currentHSCount;
-
-          // Update weighted Headshots %
-          existing.player_stats["Headshots %"] = totalKills > 0 ? (totalHSCount / totalKills) * 100 : 0;
         });
+      });
+    });
+
+    // After all sums, turn HS count into final percentage
+    overallTeams.forEach(team => {
+      team.players.forEach(player => {
+        const totalKills = player.player_stats.Kills;
+        const totalHSCount = player.player_stats["Headshots %"];
+        player.player_stats["Headshots %"] = totalKills > 0 ? (totalHSCount / totalKills) * 100 : 0;
       });
     });
 
