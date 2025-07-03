@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Tournament, Bracket } from "react-tournament-bracket";
+import { Bracket } from "react-tournament-bracket";
 
 type Team = {
   name: string;
@@ -18,25 +18,40 @@ type RawMatch = {
   status: string;
 };
 
+type Participant = {
+  id: string;
+  name: string;
+  abbreviation: string;
+  resultText: string;
+  isWinner: boolean;
+};
+
+type MatchData = {
+  id: string;
+  name: string;
+  scheduledTime?: Date;
+  participants: Participant[];
+  state: "complete" | "inProgress" | "pending";
+  nextMatchId?: string;
+  nextMatchSide?: string;
+};
+
+type Tournament = {
+  matches: MatchData[];
+  tournamentName: string;
+};
+
 function buildTournament(matches: RawMatch[]): Tournament {
-  const matchMap = new Map<string, any>();
+  const matchMap = new Map<string, MatchData>();
 
   matches.forEach((m) => {
     const team1 = m.teams.faction1;
     const team2 = m.teams.faction2;
 
     let winner = m.winner;
-    if (
-      (!team1.name || team1.name === "TBD") &&
-      team2.name &&
-      team2.name !== "TBD"
-    ) {
+    if ((!team1.name || team1.name === "TBD") && team2.name && team2.name !== "TBD") {
       winner = team2.name;
-    } else if (
-      (!team2.name || team2.name === "TBD") &&
-      team1.name &&
-      team1.name !== "TBD"
-    ) {
+    } else if ((!team2.name || team2.name === "TBD") && team1.name && team1.name !== "TBD") {
       winner = team1.name;
     }
 
@@ -106,6 +121,7 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }));
 }
 
+// Use 'any' to bypass Next.js params typing
 export default async function Page({ params }: { params: any }) {
   const { championshipId } = params;
   let matches: RawMatch[] = [];
@@ -150,41 +166,36 @@ export default async function Page({ params }: { params: any }) {
 
       <Bracket
         tournament={tournament}
-        matchComponent={({ match }) => {
-          return (
-            <Link
-              href={`/matches/${match.id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
+        matchComponent={({ match }) => (
+          <Link href={`/matches/${match.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+            <div
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 20,
+                backgroundColor: match.state === "complete" ? "#e0ffe0" : "#fff",
+                cursor: "pointer",
+              }}
             >
-              <div
-                style={{
-                  border: "1px solid #ccc",
-                  borderRadius: 8,
-                  padding: 12,
-                  marginBottom: 20,
-                  backgroundColor: match.state === "complete" ? "#e0ffe0" : "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                {match.participants.map((p: any) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontWeight: p.isWinner ? "bold" : "normal",
-                      color: p.isWinner ? "green" : "inherit",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <span>{p.name}</span>
-                  </div>
-                ))}
-              </div>
-            </Link>
-          );
-        }}
+              {match.participants.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontWeight: p.isWinner ? "bold" : "normal",
+                    color: p.isWinner ? "green" : "inherit",
+                    marginBottom: 6,
+                  }}
+                >
+                  <span>{p.name}</span>
+                </div>
+              ))}
+            </div>
+          </Link>
+        )}
       />
     </main>
   );
