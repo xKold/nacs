@@ -1,8 +1,8 @@
+// app/matches/event/[championshipId]/bracket/page.tsx
 "use client";
 
 import React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { Bracket, BracketGame, Model } from "react-tournament-bracket";
 
 type Team = {
@@ -23,7 +23,8 @@ type RawMatch = {
   next_match_side?: "home" | "away";
 };
 
-// Your fetch function (client side)
+type Params = Promise<{ championshipId: string }>;
+
 async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   const headers = {
     Authorization: `Bearer ${process.env.NEXT_PUBLIC_FACEIT_API_KEY}`,
@@ -32,7 +33,7 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
 
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
-    { headers }
+    { headers, cache: "no-store" }
   );
 
   if (!res.ok) {
@@ -113,18 +114,19 @@ function buildBracketTree(matches: RawMatch[]): Model.Game | null {
   return null;
 }
 
-export default function Page() {
-  const { championshipId } = useParams();
+export default async function Page({ params }: { params: Params }) {
+  // Await the params per your suggestion
+  const { championshipId } = await params;
 
-  const [tournament, setTournament] = React.useState<Model.Game | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
+  let rootMatch: Model.Game | null = null;
+  let error: string | null = null;
 
-  React.useEffect(() => {
-    if (!championshipId) return;
-    fetchMatches(championshipId)
-      .then((matches) => setTournament(buildBracketTree(matches)))
-      .catch((e) => setError(String(e)));
-  }, [championshipId]);
+  try {
+    const rawMatches = await fetchMatches(championshipId);
+    rootMatch = buildBracketTree(rawMatches);
+  } catch (e: any) {
+    error = e.message;
+  }
 
   if (error) {
     return (
@@ -135,7 +137,9 @@ export default function Page() {
     );
   }
 
-  if (!tournament) return <p>Loading bracket...</p>;
+  if (!rootMatch) {
+    return <p>Loading bracket or no matches available...</p>;
+  }
 
   return (
     <main>
@@ -148,7 +152,7 @@ export default function Page() {
 
       <h1 style={{ textAlign: "center" }}>Bracket</h1>
 
-      <Bracket game={tournament} GameComponent={BracketGame} homeOnTop={true} />
+      <Bracket game={rootMatch} GameComponent={BracketGame} homeOnTop={true} />
     </main>
   );
 }
