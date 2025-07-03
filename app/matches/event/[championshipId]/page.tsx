@@ -1,7 +1,9 @@
-// File: app/matches/event/[championshipId]/page.tsx
+// app/matches/event/[championshipId]/page.tsx
 
 export default async function Page({ params }: { params: { championshipId: string } }) {
-  const res = await fetch(`https://open.faceit.com/data/v4/championships/${params.championshipId}/matches`, {
+  const { championshipId } = params;
+
+  const res = await fetch(`https://open.faceit.com/data/v4/championships/${championshipId}/matches`, {
     headers: {
       Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
     },
