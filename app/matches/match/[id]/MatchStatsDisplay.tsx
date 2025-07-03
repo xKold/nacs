@@ -1,67 +1,106 @@
+'use client';
+
+import { useState } from 'react';
+
+interface PlayerStats {
+  player_id: string;
+  nickname: string;
+  player_stats: {
+    Kills: number;
+    Deaths: number;
+    Assists: number;
+    "Headshots %": number;
+  };
+}
+
+interface Team {
+  team_name: string;
+  team_stats: { FinalScore: number };
+  players: PlayerStats[];
+}
+
+interface Round {
+  round_stats: { Map: string };
+  teams: Team[];
+}
+
+interface MatchStats {
+  rounds: Round[];
+}
+
 export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchStats }) {
   const [selectedMapIndex, setSelectedMapIndex] = useState<number | 'overall'>('overall');
 
-  // Compute overall stats by aggregating all rounds
+  // Compute overall stats by aggregating all rounds properly
   const computeOverallStats = () => {
     if (!matchStats.rounds || matchStats.rounds.length === 0) return null;
 
-@@ -42,22 +42,42 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
+    // Initialize overall teams structure
+    const overallTeams = matchStats.rounds[0].teams.map(team => ({
+      team_name: team.team_name,
+      players: [] as PlayerStats[],
       team_stats: { FinalScore: 0 },
     }));
 
-    // Aggregate all rounds data
+    // Aggregate all rounds data correctly
     matchStats.rounds.forEach(round => {
       round.teams.forEach((team, teamIdx) => {
         overallTeams[teamIdx].team_stats.FinalScore += team.team_stats.FinalScore;
 
         team.players.forEach(player => {
-          const existing = overallTeams[teamIdx].players.find(p => p.player_id === player.player_id);
-          if (existing) {
-            existing.player_stats.Kills += player.player_stats.Kills;
-            existing.player_stats.Deaths += player.player_stats.Deaths;
-            existing.player_stats.Assists += player.player_stats.Assists;
-            // Take max headshot % across maps (you can customize aggregation)
-            existing.player_stats["Headshots %"] = Math.max(existing.player_stats["Headshots %"], player.player_stats["Headshots %"]);
-          } else {
-            overallTeams[teamIdx].players.push({ ...player, player_stats: { ...player.player_stats } });
-
-
-
-
+          let existing = overallTeams[teamIdx].players.find(p => p.player_id === player.player_id);
+          if (!existing) {
+            // Clone the player object with numeric stats
+            existing = {
+              ...player,
+              player_stats: {
+                Kills: 0,
+                Deaths: 0,
+                Assists: 0,
+                "Headshots %": 0,
+              },
+            };
+            overallTeams[teamIdx].players.push(existing);
           }
 
+          // Sum kills, deaths, assists numerically
+          existing.player_stats.Kills += player.player_stats.Kills;
+          existing.player_stats.Deaths += player.player_stats.Deaths;
+          existing.player_stats.Assists += player.player_stats.Assists;
 
+          // Calculate weighted headshot count (kills * HS%)
+          const prevHeadshotCount = (existing.player_stats.Kills - player.player_stats.Kills) * (existing.player_stats["Headshots %"] / 100);
+          const currentHeadshotCount = player.player_stats.Kills * (player.player_stats["Headshots %"] / 100);
 
+          // New total kills and new total headshot count
+          const newTotalKills = existing.player_stats.Kills;
+          const newTotalHeadshots = prevHeadshotCount + currentHeadshotCount;
 
-
-
-
-
-
-
-
-
-
-
-
-
+          // Calculate new weighted HS %
+          existing.player_stats["Headshots %"] = newTotalKills > 0 ? (newTotalHeadshots / newTotalKills) * 100 : 0;
         });
       });
     });
-@@ -71,19 +91,29 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
+
+    return overallTeams;
+  };
+
+  const overallTeams = computeOverallStats();
+  const rounds = matchStats.rounds || [];
+  const displayTeams = selectedMapIndex === 'overall' ? overallTeams : rounds[selectedMapIndex]?.teams;
 
   return (
     <section>
-      <h2>Maps & Scores</h2>
-      <div style={{ marginBottom: 20 }}>
+      <h2 style={{ textAlign: 'center' }}>Maps & Scores</h2>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <button
           onClick={() => setSelectedMapIndex('overall')}
-          style={{ fontWeight: selectedMapIndex === 'overall' ? 'bold' : 'normal', marginRight: 10 }}
-
-
-
-
-
+          style={{
+            fontWeight: selectedMapIndex === 'overall' ? 'bold' : 'normal',
+            marginRight: 10,
+            padding: '6px 12px',
+            cursor: 'pointer',
+          }}
         >
           Overall Stats
         </button>
@@ -69,50 +108,52 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
           <button
             key={i}
             onClick={() => setSelectedMapIndex(i)}
-            style={{ fontWeight: selectedMapIndex === i ? 'bold' : 'normal', marginRight: 10 }}
-
-
-
-
-
+            style={{
+              fontWeight: selectedMapIndex === i ? 'bold' : 'normal',
+              marginRight: 10,
+              padding: '6px 12px',
+              cursor: 'pointer',
+            }}
           >
             {round.round_stats.Map} ({round.teams[0].team_stats.FinalScore} - {round.teams[1].team_stats.FinalScore})
           </button>
-@@ -93,33 +123,45 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
+        ))}
+      </div>
+
       {displayTeams ? (
         displayTeams.map((team, teamIdx) => (
           <div key={teamIdx} style={{ marginBottom: 30 }}>
-            <h3>{team.team_name} — {team.team_stats?.FinalScore ?? 'N/A'}</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-
-
-
-
-
-
-
-
-
-
+            <h3 style={{ textAlign: 'center' }}>
+              {team.team_name} — {team.team_stats?.FinalScore ?? 'N/A'}
+            </h3>
+            <table
+              style={{
+                width: '80%',
+                margin: '0 auto',
+                borderCollapse: 'collapse',
+                border: '1px solid #ccc',
+                textAlign: 'center',
+              }}
+            >
               <thead>
-                <tr>
-                  <th align="left">Player</th>
-                  <th>Kills</th>
-                  <th>Deaths</th>
-                  <th>Assists</th>
-                  <th>Headshots %</th>
+                <tr style={{ backgroundColor: '#f0f0f0' }}>
+                  <th style={{ border: '1px solid #ccc', padding: '8px' }}>Player</th>
+                  <th style={{ border: '1px solid #ccc', padding: '8px' }}>Kills</th>
+                  <th style={{ border: '1px solid #ccc', padding: '8px' }}>Deaths</th>
+                  <th style={{ border: '1px solid #ccc', padding: '8px' }}>Assists</th>
+                  <th style={{ border: '1px solid #ccc', padding: '8px' }}>Headshots %</th>
                 </tr>
               </thead>
               <tbody>
                 {team.players.map(player => (
-                  <tr key={player.player_id}>
-                    <td>{player.nickname}</td>
-                    <td>{player.player_stats.Kills}</td>
-                    <td>{player.player_stats.Deaths}</td>
-                    <td>{player.player_stats.Assists}</td>
-                    <td>{player.player_stats["Headshots %"]}%</td>
-
-
+                  <tr key={player.player_id} style={{ borderBottom: '1px solid #ddd' }}>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.nickname}</td>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.player_stats.Kills}</td>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.player_stats.Deaths}</td>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.player_stats.Assists}</td>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>
+                      {player.player_stats["Headshots %"].toFixed(2)}%
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -120,7 +161,8 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
           </div>
         ))
       ) : (
-        <p>No stats available for this selection.</p>
+        <p style={{ textAlign: 'center' }}>No stats available for this selection.</p>
       )}
     </section>
   );
+}
