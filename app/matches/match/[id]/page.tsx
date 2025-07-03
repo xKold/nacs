@@ -1,14 +1,7 @@
 import MatchStatsDisplay from './MatchStatsDisplay';
 import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
 
-type PageProps = {
-  params: {
-    id: string;
-  };
-};
-
-export default async function Page({ params }: PageProps) {
+export default async function Page({ params }: { params: { id: string } }) {
   const { id } = params;
 
   const headers = {
