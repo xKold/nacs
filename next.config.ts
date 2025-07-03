@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   webpack(config) {
-    config.resolve.alias['@lib'] = path.resolve(__dirname, 'lib');
+    config.resolve.alias['@'] = path.resolve(__dirname);
     return config;
   },
 };
