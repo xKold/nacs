@@ -11,13 +11,6 @@ export default async function Page(props: any) {
       },
       cache: "no-store",
     }
-    `https://open.faceit.com/data/v4/championships/${championshipId}/results`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
-      },
-      cache: "no-store",
-    }
   );
 
   if (!res.ok) {
