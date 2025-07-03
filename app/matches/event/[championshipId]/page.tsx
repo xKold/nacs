@@ -1,20 +1,23 @@
-// app/matches/event/[championshipId]/page.tsx
-
-export default async function Page({ params }: { params: { championshipId: string } }) {
-  const championshipId = params.championshipId;
+export default async function Page({ params }: any) {
+  const { championshipId } = params;
 
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
     {
-      headers: {
-        Authorization: `Bearer ${process.env.FACEIT_API_KEY ?? ''}`,
-      },
-      cache: 'no-store',
+      headers: { Authorization: `Bearer ${process.env.FACEIT_API_KEY}` },
+      cache: "no-store",
     }
   );
 
   if (!res.ok) {
-    return <p>Failed to load match data. (Status: {res.status})</p>;
+    const errorText = await res.text();  // get error details from response body
+    return (
+      <main style={{ padding: 20 }}>
+        <p>
+          Failed to load matches: {res.status} {res.statusText} — {errorText}
+        </p>
+      </main>
+    );
   }
 
   const data = await res.json();
@@ -22,17 +25,16 @@ export default async function Page({ params }: { params: { championshipId: strin
   return (
     <main style={{ padding: 20 }}>
       <h1>Matches for Championship</h1>
-      {data.items?.length === 0 ? (
-        <p>No matches found.</p>
-      ) : (
-        <ul>
-          {data.items.map((match: any) => (
-            <li key={match.match_id}>
-              {match.teams?.[0]?.nickname ?? 'TBD'} vs {match.teams?.[1]?.nickname ?? 'TBD'}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul>
+        {data.items.map((match: any) => (
+          <li key={match.match_id}>
+            <a href={`/matches/match/${match.match_id}`}>
+              {match.teams[0].nickname} vs {match.teams[1].nickname} —{" "}
+              {new Date(match.start_date).toLocaleString()}
+            </a>
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }
