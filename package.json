@@ -14,9 +14,9 @@
     "react-dom": "^19.0.0",
     "react-tournament-bracket": "^0.7.0",
     "react-tournament-bracket-theme-neon": "^0.7.0",
-    "react-controllables": "^3.1.1",
+    "react-controllables": "^0.6.0",
     "underscore": "^1.13.6",
-    "uuid": "^9.0.0"
+    "uuid": "^11.0.0"
   },
   "devDependencies": {
     "typescript": "^5",
