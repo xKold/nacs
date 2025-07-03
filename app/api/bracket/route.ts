@@ -1,8 +1,10 @@
-// app/api/brackets/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { mapFaceitToMatches } from '@/lib/faceitBracketParser';
+import { mockMatches } from '@/lib/mockMatches'; // optional fallback
 
 export async function GET(req: NextRequest) {
   const championshipId = req.nextUrl.searchParams.get('championshipId');
+
   if (!championshipId) {
     return NextResponse.json({ error: 'Missing championshipId' }, { status: 400 });
   }
@@ -12,25 +14,30 @@ export async function GET(req: NextRequest) {
       `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
       {
         headers: {
-          Authorization: `Bearer ${process.env.FACEIT_API_KEY}`
+          Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
+          Accept: 'application/json'
         },
-        next: { revalidate: 60 } // Optional ISR cache
+        next: { revalidate: 60 } // optional ISR-style cache
       }
     );
 
     if (!response.ok) {
-      throw new Error(`FACEIT API error: ${response.statusText}`);
+      console.error('FACEIT API error:', response.statusText);
+      return NextResponse.json({ error: 'FACEIT API error' }, { status: response.status });
     }
 
     const data = await response.json();
 
-    // 🧠 This assumes you'll add a real parser in lib later
-    // import { mapFaceitToMatches } from '@/lib/faceitBracketParser';
-    // const matches = mapFaceitToMatches(data.items);
+    if (!data.items || !Array.isArray(data.items)) {
+      console.warn('Unexpected FACEIT response:', data);
+      return NextResponse.json({ error: 'Unexpected data format' }, { status: 500 });
+    }
 
-    return NextResponse.json({ matches: data.items });
+    const matches = mapFaceitToMatches(data.items);
+    return NextResponse.json({ matches });
   } catch (error) {
-    console.error('Failed to fetch FACEIT bracket:', error);
-    return NextResponse.json({ error: 'Failed to fetch FACEIT bracket' }, { status: 500 });
+    console.error('Failed to fetch bracket data:', error);
+    // Optional: return fallback mock matches for dev
+    return NextResponse.json({ matches: mockMatches }, { status: 200 });
   }
 }
