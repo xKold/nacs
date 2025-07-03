@@ -1,14 +1,23 @@
 // app/matches/event/[championshipId]/page.tsx
 
-export default async function Page({ params }: { params: { championshipId: string } }) {
+interface PageProps {
+  params: {
+    championshipId: string;
+  };
+}
+
+export default async function Page({ params }: PageProps) {
   const { championshipId } = params;
 
-  const res = await fetch(`https://open.faceit.com/data/v4/championships/${championshipId}/matches`, {
-    headers: {
-      Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
-    },
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
 
   if (!res.ok) {
     return <p>Failed to load match data. (Status: {res.status})</p>;
@@ -18,8 +27,8 @@ export default async function Page({ params }: { params: { championshipId: strin
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>Matches for Event</h1>
-      {data.items.length === 0 ? (
+      <h1>Matches for Championship</h1>
+      {data.items?.length === 0 ? (
         <p>No matches found.</p>
       ) : (
         <ul>
