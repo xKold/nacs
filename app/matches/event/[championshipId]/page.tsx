@@ -31,15 +31,23 @@ export default async function Page({ params }: any) {
     <main style={{ padding: 20 }}>
       <h1>Matches for Championship</h1>
       <ul>
-        {data.items.map((match: any) => (
-          <li key={match.match_id}>
-            <a href={`/matches/match/${match.match_id}`}>
-              {match.teams[0].nickname} vs {match.teams[1].nickname} —{" "}
-              {new Date(match.start_date).toLocaleString()}
-            </a>
-          </li>
-        ))}
-      </ul>
+  {data.items.map((match: any) => {
+    const team1 = match.teams?.[0]?.nickname || 'TBD';
+    const team2 = match.teams?.[1]?.nickname || 'TBD';
+    const matchTime = match.start_date
+      ? new Date(match.start_date).toLocaleString()
+      : 'Unknown Time';
+
+    return (
+      <li key={match.match_id}>
+        <a href={`/matches/match/${match.match_id}`}>
+          {team1} vs {team2} — {matchTime}
+        </a>
+      </li>
+    );
+  })}
+</ul>
+
     </main>
   );
 }
