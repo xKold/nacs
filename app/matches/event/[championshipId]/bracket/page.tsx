@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { TournamentBracket, Match, MatchProps, Tournament } from "react-tournament-bracket";
+import { Bracket, Match, MatchProps, Tournament } from "react-tournament-bracket";
 
 type Team = {
   name: string;
