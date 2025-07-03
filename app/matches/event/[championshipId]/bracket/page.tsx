@@ -3,7 +3,7 @@ import Link from "next/link";
 import {
   MatchProps,
   Tournament,
-  TournamentBracket,
+  Bracket,
 } from "react-tournament-bracket";
 
 type Team = {
@@ -112,8 +112,8 @@ async function fetchMatches(championshipId: string): Promise<RawMatch[]> {
   }));
 }
 
-// @ts-ignore
-export default async function Page({ params }: { params: { championshipId: string } }) {
+// Bypass type error with 'any' for params
+export default async function Page({ params }: { params: any }) {
   const { championshipId } = params;
   let matches: RawMatch[] = [];
   let error: string | null = null;
@@ -155,7 +155,7 @@ export default async function Page({ params }: { params: { championshipId: strin
 
       <h1 style={{ textAlign: "center" }}>Bracket</h1>
 
-      <TournamentBracket
+      <Bracket
         tournament={tournament}
         matchComponent={({ match }) => {
           return (
