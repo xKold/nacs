@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 
-export default async function Page({ params }: { params: { championshipId: string; id: string } }) {
+type MatchPageProps = {
+  params: {
+    championshipId: string;
+    id: string;
+  };
+};
+
+export default async function Page({ params }: MatchPageProps) {
   const { championshipId, id } = params;
 
   const headers = {
