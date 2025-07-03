@@ -11,6 +11,9 @@ type MatchPageProps = {
 
 export default async function Page({ params }: MatchPageProps) {
   const { championshipId, id } = params;
+  // rest of your code...
+}
+
 
   const headers = {
     Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
