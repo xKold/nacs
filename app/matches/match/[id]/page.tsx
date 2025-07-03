@@ -24,23 +24,36 @@ export default async function Page(props: any) {
     return <p>Match not found.</p>;
   }
 
+  const team1 = match.teams?.faction1?.name || "TBD";
+  const team2 = match.teams?.faction2?.name || "TBD";
+  const startTime = match.start_date
+    ? new Date(match.start_date).toLocaleString()
+    : "Unknown Time";
+
   return (
     <main style={{ padding: 20 }}>
       <h1>
-        {match.teams[0].nickname} vs {match.teams[1].nickname}
+        {team1} vs {team2}
       </h1>
-      <p>Date: {new Date(match.start_date).toLocaleString()}</p>
-      <p>Status: {match.status}</p>
-      {match.maps?.map((mp: any, i: number) => (
-        <div key={i}>
-          <h3>{mp.name}</h3>
-          <p>
-            {mp.teams[0].rounds
-              ? `${mp.teams[0].rounds} - ${mp.teams[1].rounds}`
-              : "TBD"}
-          </p>
-        </div>
-      ))}
+      <p>Date: {startTime}</p>
+      <p>Status: {match.status || "Unknown"}</p>
+
+      {/* Optional: if you later get maps info from another endpoint */}
+      {match.maps?.length > 0 && (
+        <section>
+          <h2>Maps</h2>
+          {match.maps.map((mp: any, i: number) => (
+            <div key={i}>
+              <h3>{mp.name}</h3>
+              <p>
+                {mp.teams?.[0]?.rounds
+                  ? `${mp.teams[0].rounds} - ${mp.teams[1].rounds}`
+                  : "TBD"}
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
     </main>
   );
 }
