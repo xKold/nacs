@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Bracket, Match, MatchProps, Tournament } from "react-tournament-bracket";
+import { Bracket, MatchProps, Tournament } from "react-tournament-bracket";
 
 type Team = {
   name: string;
@@ -20,17 +20,9 @@ type RawMatch = {
   status: string;
 };
 
-// Convert your raw matches into the tree structure needed by react-tournament-bracket
-
 function buildTournament(matches: RawMatch[]): Tournament {
-  // For simplicity, assume matches are sorted by round and then order
-
-  // Example for 8 first round matches, then 4 quarterfinals, etc.
-  // This builds a binary tree from matches by pairing winners
-
   const matchMap = new Map<string, MatchProps>();
 
-  // Create leaf nodes
   matches.forEach((m) => {
     matchMap.set(m.match_id, {
       id: m.match_id,
@@ -63,10 +55,33 @@ function buildTournament(matches: RawMatch[]): Tournament {
     });
   });
 
-  // You’ll need to set nextMatchId and nextMatchSide to link matches in bracket
+  // Link matches for a single-elimination bracket (example for 8 matches first round)
+  // This logic assumes matches are ordered correctly in the array
+  const rounds = Math.ceil(Math.log2(matches.length + 1));
+  let currentRoundSize = matches.length;
+  let nextRoundStartIndex = currentRoundSize;
 
-  // For demo: naive approach — no nextMatchId, only a flat array
-  // This will just render them as disconnected matches (not connected tree)
+  while (currentRoundSize > 1) {
+    for (let i = 0; i < currentRoundSize; i += 2) {
+      const m1 = matchMap.get(matches[nextRoundStartIndex - currentRoundSize + i]?.match_id);
+      if (!m1) continue;
+
+      const child1 = matchMap.get(matches[nextRoundStartIndex - currentRoundSize - currentRoundSize + i]?.match_id);
+      const child2 = matchMap.get(matches[nextRoundStartIndex - currentRoundSize - currentRoundSize + i + 1]?.match_id);
+
+      if (child1) {
+        child1.nextMatchId = m1.id;
+        child1.nextMatchSide = "top";
+      }
+      if (child2) {
+        child2.nextMatchId = m1.id;
+        child2.nextMatchSide = "bottom";
+      }
+    }
+
+    nextRoundStartIndex += currentRoundSize;
+    currentRoundSize = Math.floor(currentRoundSize / 2);
+  }
 
   return {
     matches: Array.from(matchMap.values()),
@@ -135,10 +150,9 @@ export default function Page({ params }: { params: { championshipId: string } })
 
       <h1 style={{ textAlign: "center" }}>Bracket</h1>
 
-      <TournamentBracket
+      <Bracket
         tournament={tournament}
         matchComponent={({ match }) => {
-          // Custom match rendering with clickable link
           return (
             <Link href={`/matches/${match.id}`} style={{ textDecoration: "none", color: "inherit" }}>
               <div
