@@ -22,12 +22,6 @@ type Round = {
   matches: Match[];
 };
 
-type PageProps = {
-  params: {
-    championshipId: string;
-  };
-};
-
 async function fetchMatches(championshipId: string): Promise<Match[]> {
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
@@ -131,7 +125,8 @@ function Bracket({ rounds }: { rounds: Round[] }) {
   );
 }
 
-export default async function Page({ params }: PageProps) {
+// ✅ CORRECT TYPING FOR APP ROUTER PAGE
+export default async function Page({ params }: { params: { championshipId: string } }) {
   const { championshipId } = params;
 
   try {
