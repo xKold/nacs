@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 
-type Props = {
-  params: {
-    championshipId: string;
-    id: string;
-  };
-};
-
-export default async function Page({ params }: Props) {
+export default async function Page({ params }: any) {
   const { championshipId, id } = params;
 
   const headers = {
