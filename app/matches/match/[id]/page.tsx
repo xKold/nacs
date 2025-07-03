@@ -31,7 +31,6 @@ export default async function Page(props: any) {
       </h1>
       <p>Date: {new Date(match.start_date).toLocaleString()}</p>
       <p>Status: {match.status}</p>
-
       {match.maps?.map((mp: any, i: number) => (
         <div key={i}>
           <h3>{mp.name}</h3>
