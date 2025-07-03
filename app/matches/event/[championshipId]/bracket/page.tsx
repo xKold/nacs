@@ -22,21 +22,22 @@ type Round = {
   matches: Match[];
 };
 
-type Props = {
+type PageProps = {
   params: {
     championshipId: string;
   };
 };
 
 async function fetchMatches(championshipId: string): Promise<Match[]> {
-  const headers = {
-    Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
-    Accept: 'application/json',
-  };
-
   const res = await fetch(
     `https://open.faceit.com/data/v4/championships/${championshipId}/matches`,
-    { headers, cache: 'no-store' }
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
+        Accept: 'application/json',
+      },
+      cache: 'no-store',
+    }
   );
 
   if (!res.ok) {
@@ -57,9 +58,8 @@ async function fetchMatches(championshipId: string): Promise<Match[]> {
   }));
 }
 
-// Simple fallback round inference based on order
 function groupMatchesByRound(matches: Match[]): Round[] {
-  const chunkSize = Math.max(Math.floor(matches.length / 3), 1); // assumes ~3 rounds
+  const chunkSize = Math.max(Math.floor(matches.length / 3), 1);
   const rounds: Round[] = [];
   for (let i = 0; i < matches.length; i += chunkSize) {
     rounds.push({
@@ -91,7 +91,7 @@ function Bracket({ rounds }: { rounds: Round[] }) {
                 const isWinner = match.winner === team.name;
                 return (
                   <div
-                    key={team.name + match.match_id}
+                    key={`${team.name}-${match.match_id}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -104,7 +104,7 @@ function Bracket({ rounds }: { rounds: Round[] }) {
                     {team.avatar ? (
                       <img
                         src={team.avatar}
-                        alt={team.name}
+                        alt={`${team.name} logo`}
                         width={32}
                         height={32}
                         style={{ borderRadius: '50%' }}
@@ -131,12 +131,34 @@ function Bracket({ rounds }: { rounds: Round[] }) {
   );
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params }: PageProps) {
   const { championshipId } = params;
 
-  let matches: Match[] = [];
   try {
-    matches = await fetchMatches(championshipId);
+    const matches = await fetchMatches(championshipId);
+    if (!matches.length) {
+      return (
+        <main style={{ padding: 20 }}>
+          <p>No matches found for this championship.</p>
+          <Link href={`/matches/event/${championshipId}`}>Back to Matches</Link>
+        </main>
+      );
+    }
+
+    const rounds = groupMatchesByRound(matches);
+
+    return (
+      <main>
+        <nav style={{ padding: 20 }}>
+          <Link href={`/matches/event/${championshipId}`} style={{ marginRight: 20 }}>
+            Matches
+          </Link>
+          <strong>Bracket</strong>
+        </nav>
+        <h1 style={{ textAlign: 'center' }}>Bracket</h1>
+        <Bracket rounds={rounds} />
+      </main>
+    );
   } catch (err: any) {
     return (
       <main style={{ padding: 20 }}>
@@ -145,28 +167,4 @@ export default async function Page({ params }: Props) {
       </main>
     );
   }
-
-  if (matches.length === 0) {
-    return (
-      <main style={{ padding: 20 }}>
-        <p>No matches found for this championship.</p>
-        <Link href={`/matches/event/${championshipId}`}>Back to Matches</Link>
-      </main>
-    );
-  }
-
-  const rounds = groupMatchesByRound(matches);
-
-  return (
-    <main>
-      <nav style={{ padding: 20 }}>
-        <Link href={`/matches/event/${championshipId}`} style={{ marginRight: 20 }}>
-          Matches
-        </Link>
-        <strong>Bracket</strong>
-      </nav>
-      <h1 style={{ textAlign: 'center' }}>Bracket</h1>
-      <Bracket rounds={rounds} />
-    </main>
-  );
 }
