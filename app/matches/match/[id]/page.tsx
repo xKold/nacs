@@ -8,6 +8,7 @@ export default async function Page(props: any) {
     {
       headers: {
         Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
+        Accept: 'application/json',
       },
       cache: "no-store",
     }
