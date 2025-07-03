@@ -1,3 +1,5 @@
+import MatchStatsDisplay from './MatchStatsDisplay';
+
 export default async function Page({ params }: { params: any }) {
   const { id } = params;
 
