@@ -6,10 +6,10 @@ interface PlayerStats {
   player_id: string;
   nickname: string;
   player_stats: {
-    Kills: number;
-    Deaths: number;
-    Assists: number;
-    "Headshots %": number;
+    Kills: string | number;
+    Deaths: string | number;
+    Assists: string | number;
+    "Headshots %": string | number;
   };
 }
 
@@ -28,21 +28,58 @@ interface MatchStats {
   rounds: Round[];
 }
 
-export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchStats }) {
+interface MatchResults {
+  score: {
+    faction1: number;
+    faction2: number;
+  };
+}
+
+interface DetailedResult {
+  factions: {
+    faction1: { score: number };
+    faction2: { score: number };
+  };
+}
+
+interface MatchStatsDisplayProps {
+  matchStats: MatchStats;
+  teams: {
+    faction1?: { name: string };
+    faction2?: { name: string };
+  };
+  results?: MatchResults;
+  detailedResults?: DetailedResult[];
+}
+
+export default function MatchStatsDisplay({
+  matchStats,
+  teams,
+  results,
+  detailedResults,
+}: MatchStatsDisplayProps) {
   const [selectedMapIndex, setSelectedMapIndex] = useState<number | 'overall'>('overall');
+
+  const faction1Name = teams?.faction1?.name ?? 'Team 1';
+  const faction2Name = teams?.faction2?.name ?? 'Team 2';
+
+  // Helper function to safely convert stats to numbers
+  const parseStatValue = (value: string | number): number => {
+    if (typeof value === 'number') return value;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
 
   // Compute overall stats by aggregating all rounds properly
   const computeOverallStats = () => {
     if (!matchStats.rounds || matchStats.rounds.length === 0) return null;
 
-    // Initialize overall teams structure
-    const overallTeams = matchStats.rounds[0].teams.map(team => ({
-      team_name: team.team_name,
+    const overallTeams = matchStats.rounds[0].teams.map((_, idx) => ({
+      team_name: idx === 0 ? faction1Name : faction2Name,
       players: [] as PlayerStats[],
       team_stats: { FinalScore: 0 },
     }));
 
-    // Aggregate all rounds data correctly
     matchStats.rounds.forEach(round => {
       round.teams.forEach((team, teamIdx) => {
         overallTeams[teamIdx].team_stats.FinalScore += team.team_stats.FinalScore;
@@ -50,7 +87,6 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
         team.players.forEach(player => {
           let existing = overallTeams[teamIdx].players.find(p => p.player_id === player.player_id);
           if (!existing) {
-            // Clone the player object with numeric stats
             existing = {
               ...player,
               player_stats: {
@@ -63,21 +99,28 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
             overallTeams[teamIdx].players.push(existing);
           }
 
-          // Sum kills, deaths, assists numerically
-          existing.player_stats.Kills += player.player_stats.Kills;
-          existing.player_stats.Deaths += player.player_stats.Deaths;
-          existing.player_stats.Assists += player.player_stats.Assists;
+          const currentKills = parseStatValue(player.player_stats.Kills);
+          const currentDeaths = parseStatValue(player.player_stats.Deaths);
+          const currentAssists = parseStatValue(player.player_stats.Assists);
+          const currentHSPercent = parseStatValue(player.player_stats["Headshots %"]);
 
-          // Calculate weighted headshot count (kills * HS%)
-          const prevHeadshotCount = (existing.player_stats.Kills - player.player_stats.Kills) * (existing.player_stats["Headshots %"] / 100);
-          const currentHeadshotCount = player.player_stats.Kills * (player.player_stats["Headshots %"] / 100);
+          const prevKills = parseStatValue(existing.player_stats.Kills);
+          const prevDeaths = parseStatValue(existing.player_stats.Deaths);
+          const prevAssists = parseStatValue(existing.player_stats.Assists);
+          const prevHSPercent = parseStatValue(existing.player_stats["Headshots %"]);
 
-          // New total kills and new total headshot count
-          const newTotalKills = existing.player_stats.Kills;
+          existing.player_stats.Kills = prevKills + currentKills;
+          existing.player_stats.Deaths = prevDeaths + currentDeaths;
+          existing.player_stats.Assists = prevAssists + currentAssists;
+
+          const prevHeadshotCount = prevKills * (prevHSPercent / 100);
+          const currentHeadshotCount = currentKills * (currentHSPercent / 100);
+          const newTotalKills = prevKills + currentKills;
           const newTotalHeadshots = prevHeadshotCount + currentHeadshotCount;
 
-          // Calculate new weighted HS %
-          existing.player_stats["Headshots %"] = newTotalKills > 0 ? (newTotalHeadshots / newTotalKills) * 100 : 0;
+          existing.player_stats["Headshots %"] = newTotalKills > 0
+            ? (newTotalHeadshots / newTotalKills) * 100
+            : 0;
         });
       });
     });
@@ -102,7 +145,7 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
             cursor: 'pointer',
           }}
         >
-          Overall Stats
+          Overall Stats ({results?.score?.faction1 ?? 0} - {results?.score?.faction2 ?? 0})
         </button>
         {rounds.map((round, i) => (
           <button
@@ -115,7 +158,7 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
               cursor: 'pointer',
             }}
           >
-            {round.round_stats.Map} ({round.teams[0].team_stats.FinalScore} - {round.teams[1].team_stats.FinalScore})
+            {round.round_stats.Map} ({detailedResults?.[i]?.factions?.faction1?.score ?? 0} - {detailedResults?.[i]?.factions?.faction2?.score ?? 0})
           </button>
         ))}
       </div>
@@ -123,8 +166,18 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
       {displayTeams ? (
         displayTeams.map((team, teamIdx) => (
           <div key={teamIdx} style={{ marginBottom: 30 }}>
-            <h3 style={{ textAlign: 'center' }}>
-              {team.team_name} — {team.team_stats?.FinalScore ?? 'N/A'}
+            <h3
+              style={{
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa',
+                padding: '10px',
+                margin: '0 auto 15px auto',
+                borderRadius: '5px',
+                width: '80%',
+                border: '1px solid #dee2e6',
+              }}
+            >
+              {teamIdx === 0 ? faction1Name : faction2Name}
             </h3>
             <table
               style={{
@@ -148,11 +201,17 @@ export default function MatchStatsDisplay({ matchStats }: { matchStats: MatchSta
                 {team.players.map(player => (
                   <tr key={player.player_id} style={{ borderBottom: '1px solid #ddd' }}>
                     <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.nickname}</td>
-                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.player_stats.Kills}</td>
-                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.player_stats.Deaths}</td>
-                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>{player.player_stats.Assists}</td>
                     <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-                      {player.player_stats["Headshots %"].toFixed(2)}%
+                      {parseStatValue(player.player_stats.Kills)}
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>
+                      {parseStatValue(player.player_stats.Deaths)}
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>
+                      {parseStatValue(player.player_stats.Assists)}
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '8px' }}>
+                      {parseStatValue(player.player_stats["Headshots %"]).toFixed(2)}%
                     </td>
                   </tr>
                 ))}
