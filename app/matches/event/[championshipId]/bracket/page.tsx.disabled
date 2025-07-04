@@ -1,0 +1,45 @@
+  // app/matches/event/[championshipId]/bracket/page.tsx
+    import React from 'react';
+
+    interface Match {
+      match_id: string;
+      teams: {
+        faction1: { name: string };
+        faction2: { name: string };
+      };
+    }
+
+    async function fetchMatches(championshipId: string): Promise<Match[]> {
+      const res = await fetch(`https://open.faceit.com/data/v4/matches?event_id=${championshipId}/matches`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.FACEIT_API_KEY}`,  // Use env var
+        },
+        // Next.js revalidate option (optional)
+        next: { revalidate: 60 },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch matches');
+      }
+      const data = await res.json();
+      return data.items || [];
+    }
+
+    export default async function BracketPage({ params }: { params: { championshipId: string } }) {
+      const matches = await fetchMatches(params.championshipId);
+
+      return (
+        <div>
+          <h1>Bracket for Championship {params.championshipId}</h1>
+          <div className="bracket">
+            {matches.map((match) => (
+              <div key={match.match_id} className="match">
+                <div>{match.teams.faction1.name}</div>
+                <div>vs</div>
+                <div>{match.teams.faction2.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
