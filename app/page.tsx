@@ -4,28 +4,33 @@ export default function Home() {
   return (
     <main
       style={{
-        maxWidth: 900,
-        margin: '2rem auto',
-        padding: '0 1rem',
+        minHeight: '100vh',
+        backgroundColor: '#090c1a',
+        color: 'white',
+        padding: '2rem 1rem',
         fontFamily: 'Arial, sans-serif',
+        margin: 0,
       }}
     >
-      <h1
+      <div
         style={{
-          fontSize: '2rem',
-          marginBottom: '1rem',
-          borderBottom: '2px solid #ddd',
-          paddingBottom: '.5rem',
+          backgroundColor: 'white',
+          borderRadius: 8,
+          padding: '2rem',
+          color: 'black',
+          maxWidth: 900,
+          margin: '0 auto',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         }}
       >
-        Upcoming Events
-      </h1>
-      <EventList />
-      <footer
+        <h1>Events Overview</h1>
+        <EventList />
+        <footer
         style={{ marginTop: '3rem', fontSize: '.8rem', color: '#aaa', textAlign: 'center' }}
       >
-        Powered by Faceit API — Data refreshes live
+        Powered by North American Counter Strike
       </footer>
+      </div>
     </main>
   );
 }
