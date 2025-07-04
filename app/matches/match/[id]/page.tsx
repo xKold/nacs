@@ -48,7 +48,11 @@ export default async function Page({ params }: { params: any }) {
         <strong>Status:</strong> {matchDetails.status ?? 'Unknown'}
       </p>
 
-      <MatchStatsDisplay matchStats={matchStats} />
+      <MatchStatsDisplay  
+        matchStats={matchStats}
+        teams={matchDetails.teams}
+        results={matchDetails.results} // if present
+        detailedResults={matchStats.rounds} />
     </main>
   );
 }
