@@ -1,7 +1,7 @@
 // app/matches/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getEventById, getEventByLeagueAndSeason, events } from '../lib/events';
@@ -19,7 +19,7 @@ interface Match {
   start_date?: string;
 }
 
-export default function MatchesPage() {
+function MatchesContent() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<string>('');
@@ -154,5 +154,13 @@ export default function MatchesPage() {
         })}
       </ul>
     </main>
+  );
+}
+
+export default function MatchesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MatchesContent />
+    </Suspense>
   );
 }
