@@ -2,7 +2,7 @@
 // This component helps identify the correct API structure and endpoints
 
 import Link from 'next/link';
-import { getEventByLeagueAndSeason } from '../../lib/events';
+import { getEventByLeagueAndSeason } from '../../../../app/lib/events/events.ts';
 
 export default async function Page({
   params,
