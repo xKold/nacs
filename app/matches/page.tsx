@@ -13,7 +13,7 @@ interface Match {
     faction1?: { name: string };
     faction2?: { name: string };
     nickname?: string;
-  };
+  } | Array<{ nickname?: string; name?: string }>;
   scheduled_at?: number;
   started_at?: number;
   start_date?: string;
@@ -119,8 +119,18 @@ export default function MatchesPage() {
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {matches.length === 0 && <li>No matches found.</li>}
         {matches.map((m) => {
-          const faction1 = m.teams?.faction1?.name || m.teams?.[0]?.nickname || 'TBD';
-          const faction2 = m.teams?.faction2?.name || m.teams?.[1]?.nickname || 'TBD';
+          // Handle both object and array formats for teams
+          let faction1 = 'TBD';
+          let faction2 = 'TBD';
+          
+          if (Array.isArray(m.teams)) {
+            faction1 = m.teams[0]?.nickname || m.teams[0]?.name || 'TBD';
+            faction2 = m.teams[1]?.nickname || m.teams[1]?.name || 'TBD';
+          } else if (m.teams) {
+            faction1 = m.teams.faction1?.name || 'TBD';
+            faction2 = m.teams.faction2?.name || 'TBD';
+          }
+          
           const rawTime = m.scheduled_at || m.started_at || 0;
           const time = rawTime ? new Date(rawTime * 1000).toLocaleString() : 'Unknown';
 
