@@ -4,11 +4,12 @@ export default async function Page({
   params,
   searchParams,
 }: {
-  params: { leagueId: string };
-  searchParams?: { season?: string };
+  params: Promise<{ leagueId: string }>;
+  searchParams?: Promise<{ season?: string }>;
 }) {
-  const { leagueId } = params;
-  const seasonId = searchParams?.season;
+  const { leagueId } = await params;
+  const resolvedSearchParams = await searchParams;
+  const seasonId = resolvedSearchParams?.season;
 
   if (!seasonId) {
     return (
