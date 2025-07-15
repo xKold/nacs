@@ -1,11 +1,12 @@
 import Link from 'next/link';
 
-type PageProps = {
+export default async function Page({
+  params,
+  searchParams,
+}: {
   params: { leagueId: string };
   searchParams?: { season?: string };
-};
-
-export default async function Page({ params, searchParams }: PageProps) {
+}) {
   const { leagueId } = params;
   const seasonId = searchParams?.season;
 
@@ -20,7 +21,6 @@ export default async function Page({ params, searchParams }: PageProps) {
   const res = await fetch(
     `https://open.faceit.com/data/v4/leagues/${leagueId}/seasons/${seasonId}`,
     {
-      method: 'GET',
       headers: {
         Authorization: `Bearer ${process.env.FACEIT_API_KEY}`,
         Accept: 'application/json',
