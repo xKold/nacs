@@ -1,8 +1,15 @@
 import Link from 'next/link';
 
-export default async function Page({ params, searchParams }: { params: { leagueId: string }, searchParams: { season?: string } }) {
-  const { leagueId } = params;
-  const seasonId = searchParams.season;
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: { leagueId: string } | Promise<{ leagueId: string }>;
+  searchParams?: { season?: string };
+}) {
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const leagueId = resolvedParams.leagueId;
+  const seasonId = searchParams?.season;
 
   if (!seasonId) {
     return (
@@ -38,14 +45,9 @@ export default async function Page({ params, searchParams }: { params: { leagueI
 
   const seasonData = await res.json();
 
-  // We will display matches from the first division or let user choose division if multiple
-  // For parity with championship page, just flatten matches for now
-  // Later you could add UI for division select if needed
-
   const matches = seasonData.items ?? [];
   const divisions = seasonData.organizer_divisions ?? [];
 
-  // Sort matches into ongoing, upcoming, past like championship page
   const now = Date.now();
   const ongoing: any[] = [];
   const upcoming: any[] = [];
