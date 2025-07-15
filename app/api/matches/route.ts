@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   if (championshipId) {
     url = `https://open.faceit.com/data/v4/championships/${championshipId}/matches`;
   } else if (leagueId && seasonId) {
-    url = `https://open.faceit.com/data/v4/leagues/${leagueId}/seasons/${seasonId}`;
+    url = `https://open.faceit.com/data/v4/leagues/${leagueId}/seasons/${seasonId}/matches`;
   } else {
     return NextResponse.json(
       { error: 'Missing required parameters: either championshipId or leagueId + seasonId' },

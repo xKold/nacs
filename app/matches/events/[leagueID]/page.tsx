@@ -135,7 +135,7 @@ export default function Page({
         }}
       >
         <Link
-          href={`/matches/event/${leagueId}?season=${seasonId}`}
+          href={`/matches/events/${leagueId}?season=${seasonId}`}
           style={{ fontWeight: 'bold', color: 'blue', textDecoration: 'underline' }}
         >
           Matches
