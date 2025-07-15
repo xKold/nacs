@@ -1,14 +1,12 @@
 import Link from 'next/link';
 
-export default async function Page({
-  params,
-  searchParams,
-}: {
-  params: { leagueId: string } | Promise<{ leagueId: string }>;
+type PageProps = {
+  params: { leagueId: string };
   searchParams?: { season?: string };
-}) {
-  const resolvedParams = params instanceof Promise ? await params : params;
-  const leagueId = resolvedParams.leagueId;
+};
+
+export default async function Page({ params, searchParams }: PageProps) {
+  const { leagueId } = params;
   const seasonId = searchParams?.season;
 
   if (!seasonId) {
@@ -19,7 +17,6 @@ export default async function Page({
     );
   }
 
-  // Fetch season details, which include matches and divisions
   const res = await fetch(
     `https://open.faceit.com/data/v4/leagues/${leagueId}/seasons/${seasonId}`,
     {
@@ -44,7 +41,6 @@ export default async function Page({
   }
 
   const seasonData = await res.json();
-
   const matches = seasonData.items ?? [];
   const divisions = seasonData.organizer_divisions ?? [];
 
@@ -126,7 +122,6 @@ export default async function Page({
         >
           Matches
         </Link>
-        {/* Placeholder for standings or other nav */}
         <Link href="#" style={{ color: 'gray' }}>
           Standings
         </Link>
