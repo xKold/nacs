@@ -159,9 +159,6 @@ export default async function Page({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9f9f9'}
           }}>
             <span style={{ fontWeight: 'bold' }}>{team1} vs {team2}</span>
             <span className="match-time" data-timestamp={timestampAttr} style={{ color: '#666' }}>
