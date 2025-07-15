@@ -1,7 +1,10 @@
+// app/matches/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { getEventById, getEventByLeagueAndSeason, events } from '../lib/events';
 
 interface Match {
   match_id: string;
@@ -19,24 +22,51 @@ interface Match {
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // === Toggle this section ===
-  const matchType: 'championship' | 'league' = 'league'; // ← Change to 'championship' if needed
-
-  // For championship:
-  const championshipId = 'f56331e8-131a-4c50-b7db-eec8b010ff98';
-
-  // For league:
-  const leagueId = 'a14b8616-45b9-4581-8637-4dfd0b5f6af8';
-  const seasonId = '3de05c27-da01-4ede-9319-f5b3f16dfb1f';
+  const [selectedEvent, setSelectedEvent] = useState<string>('');
+  
+  const searchParams = useSearchParams();
+  const eventIdFromUrl = searchParams.get('event');
 
   useEffect(() => {
+    // Set initial event from URL or default to first event
+    if (eventIdFromUrl) {
+      setSelectedEvent(eventIdFromUrl);
+    } else {
+      setSelectedEvent(events[0].id);
+    }
+  }, [eventIdFromUrl]);
+
+  useEffect(() => {
+    if (!selectedEvent) return;
+
+    // Find the event by ID first
+    let event = getEventById(selectedEvent);
+    
+    // If not found by ID, try to find by league/season (for backwards compatibility)
+    if (!event) {
+      const leagueId = searchParams.get('leagueId');
+      const seasonId = searchParams.get('seasonId');
+      if (leagueId && seasonId) {
+        event = getEventByLeagueAndSeason(leagueId, seasonId);
+      }
+    }
+
+    if (!event) {
+      setMatches([]);
+      setLoading(false);
+      return;
+    }
+
     let url = '/api/matches?';
 
-    if (matchType === 'championship') {
-      url += `championshipId=${championshipId}`;
+    if (event.type === 'championship') {
+      url += `championshipId=${event.id}`;
+    } else if (event.leagueId && event.seasonId) {
+      url += `leagueId=${event.leagueId}&seasonId=${event.seasonId}`;
     } else {
-      url += `leagueId=${leagueId}&seasonId=${seasonId}`;
+      setMatches([]);
+      setLoading(false);
+      return;
     }
 
     fetch(url)
@@ -46,13 +76,46 @@ export default function MatchesPage() {
       })
       .catch(() => setMatches([]))
       .finally(() => setLoading(false));
-  }, [matchType, championshipId, leagueId, seasonId]);
+  }, [selectedEvent, searchParams]);
+
+  const currentEvent = getEventById(selectedEvent);
 
   if (loading) return <p>Loading matches…</p>;
 
   return (
-    <main>
-      <h1>{matchType === 'championship' ? 'Championship Matches' : 'League Matches'}</h1>
+    <main style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <label htmlFor="event-select" style={{ marginRight: '10px' }}>
+          Select Event:
+        </label>
+        <select
+          id="event-select"
+          value={selectedEvent}
+          onChange={(e) => setSelectedEvent(e.target.value)}
+          style={{
+            padding: '5px 10px',
+            fontSize: '16px',
+            borderRadius: '4px',
+            border: '1px solid #ccc',
+          }}
+        >
+          {events.map((event) => (
+            <option key={event.id} value={event.id}>
+              {event.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <h1>
+        {currentEvent?.name || 'Event'} Matches
+        {currentEvent && (
+          <span style={{ fontSize: '0.7em', color: '#666', marginLeft: '10px' }}>
+            ({currentEvent.type === 'championship' ? 'Championship' : 'League'})
+          </span>
+        )}
+      </h1>
+      
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {matches.length === 0 && <li>No matches found.</li>}
         {matches.map((m) => {
