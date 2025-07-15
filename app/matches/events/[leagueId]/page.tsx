@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getEventByLeagueAndSeason } from '../../../lib/events/events';
+import { getEventByLeagueAndSeason } from '../../../lib/events';
 
 export default async function Page({
   params,
@@ -158,8 +158,10 @@ export default async function Page({
             backgroundColor: '#f9f9f9',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            transition: 'background-color 0.2s'
+            alignItems: 'center'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9f9f9'}
           }}>
             <span style={{ fontWeight: 'bold' }}>{team1} vs {team2}</span>
             <span className="match-time" data-timestamp={timestampAttr} style={{ color: '#666' }}>
@@ -300,11 +302,7 @@ export default async function Page({
         </>
       )}
 
-      <style jsx>{`
-        a:hover div {
-          background-color: #f0f0f0 !important;
-        }
-      `}</style>
+
 
       <script
         dangerouslySetInnerHTML={{
