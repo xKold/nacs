@@ -1,4 +1,4 @@
-// app/lib/events.ts
+// ./static/events.ts
 export type Event = {
   id: string;
   name: string;
