@@ -4,7 +4,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { getEventById, getEventByLeagueAndSeason, events } from '../lib/events';
+import { getEventById, getEventByLeagueAndSeason, events } from '../../static/events';
 
 interface Match {
   match_id: string;

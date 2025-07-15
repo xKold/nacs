@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { events, type Event } from '../lib/events';
+import { events, type Event } from '../../static/events';
 
 export default function EventList() {
   return (
